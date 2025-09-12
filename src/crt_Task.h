@@ -3,9 +3,9 @@
 extern "C" {
 	#include "crt_stm_hal.h"
 
-	#include "cmsis_os.h"
-	#include <cassert>
+	#include "cmsis_os2.h"
 }
+#include <cassert>
 
 #include "stdio.h"
 #include "crt_Config.h"
@@ -53,10 +53,11 @@ namespace crt
 
         void start()
         {
-        	// In ARM FreeRTOS ports, stack_size in in StackSize_t = 4 bytes per size.
+        	// In ARM FreeRTOS ports, stack_size is soms in StackSize_t = 4 bytes per size. Ik dacht bij blackpill.
+
         	const osThreadAttr_t  task_attributes({
         			          .name = taskName,
-        			          .stack_size = (taskStackSizeBytes+3/4),
+        			          .stack_size = taskStackSizeBytes, // by e5 wel gewoon bytes.. ((taskStackSizeBytes+3)/4),
         			          .priority = taskPriority,
         			      });
         	taskHandle = osThreadNew(staticMain, this, &task_attributes);

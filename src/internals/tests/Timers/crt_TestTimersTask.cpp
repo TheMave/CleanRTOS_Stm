@@ -1,4 +1,4 @@
-#include <examples/Timers/crt_TestTimersTask.h>
+#include <crt_TestTimersTask.h>
 
 uint32_t crt::TestTimersTask::myUserArg = 42;
 volatile uint32_t crt::TestTimersTask::myUserArgReceived = 0;

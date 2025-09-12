@@ -3,7 +3,7 @@
 extern "C" {
 	#include "crt_stm_hal.h"
 
-	#include "cmsis_os.h"
+	#include "cmsis_os2.h"
 }
 
 #include <cstdint>

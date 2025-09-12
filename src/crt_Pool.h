@@ -10,7 +10,7 @@
 extern "C" {
 	#include "crt_stm_hal.h"
 
-	#include "cmsis_os.h"
+	#include "cmsis_os2.h"
 }
 
 #include "internals/crt_SimpleMutexSection.h"
@@ -27,6 +27,9 @@ namespace crt
 		Pool()
 		{}
 
+		explicit Pool(const T& initial) : data(initial)
+		{}
+
 		void write (T item)
 		{
 			SimpleMutexSection simpleMutexSection(simpleMutex);
@@ -38,6 +41,22 @@ namespace crt
 			SimpleMutexSection simpleMutexSection(simpleMutex);
 			item = data;
 		}
+
+		// atomic update via static function without additional argument, then read
+	    void readAtomicUpdate(T& item, void (*op)(T&)) {
+	        SimpleMutexSection sms(simpleMutex);
+	        op(data);
+	        item = data;
+	    }
+
+	    // atomic update via static function with additional argument
+	    // (could be struct if you need more than one argument), then read
+	    template <typename A1>
+	    void readAtomicUpdate(T& item, void (*op)(T&, A1), A1 a1) {
+	        SimpleMutexSection sms(simpleMutex);
+	        op(data, a1);
+	        item = data;
+	    }
 	};
 };
 

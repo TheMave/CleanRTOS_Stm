@@ -1,29 +1,28 @@
 // by Marius Versteegen, 2023
 
 // This file contains the code of multiple tasks that run concurrently and notify eachother using flags.
-#include "crt_TestQueue.h"
+#include "crt_DemoQueue.h"
 
-#include <cstdio>
 extern "C" {
+	// put c includes here
 	#include "crt_stm_hal.h"
     #include "main.h"  // bevat vaak GPIO-definities
-	#include "cmsis_os.h"
+	#include "cmsis_os2.h"
 	#include <inttypes.h>
 }
 
+// put c++ includes here
+#include <cstdio>
 #include "crt_CleanRTOS.h"
 
 
 // This file contains the code of a task that sends numbers to another task, which displays them.
 // The numbers are transferred via the Queue synchronization mechanism.
 
-// To see the test output in the serial monitor, just press the button that is assigned
-// to the logger.
+using namespace crt;
 
-namespace crt
+namespace crt_demoqueue
 {
-	//extern crt::ILogger& logger;
-
 	class NumberDisplayTask : public Task
 	{
 	private:
@@ -76,7 +75,11 @@ namespace crt
 	private:
 		void main() override
 		{
-			vTaskDelay(1000); // wait for other threads to have started up as well.
+			osDelay(1000); // wait for other threads to have started up as well.
+			printf("\r\n-----------------\r\n");
+			printf("DemoQueue_started\r\n");
+			printf("-----------------\r\n");
+			osDelay(300);
 
 			int32_t i = 1;
 
@@ -90,23 +93,16 @@ namespace crt
 					numberDisplayTask.displayNumber(i++);
 				}
 
-				vTaskDelay(1000);
+				osDelay(1000);
 			}
 		}
 	}; // end class NumberSendTask
-};// end namespace crt
+};// end namespace crt_demoqueue
 
 extern "C" {
-	void testQueue_init()
+	void demoQueue_init()
 	{
-		// kernal not started yet: printf werkt hier nog niet..
-		// Create a "global" logger object withing namespace crt.
-		//const unsigned int pinButtonDump = 34; // Pressing a button connected to this pin dumps the latest logs to serial monitor.
-
-		//Logger<100> theLogger("Logger", 2 /*priority*/, ARDUINO_RUNNING_CORE, pinButtonDump);
-		//ILogger& logger = theLogger;	// This is the global object. It can be accessed without knowledge of the template parameter of theLogger.
-
-		static crt::NumberDisplayTask numberDisplayTask("NumberDisplayTask", osPriorityNormal /*priority*/, 1000 /*stackBytes*/); // Don't forget to call its start() memeber during setup().
-		static crt::NumberSendTask numberSendTask   ("NumberSendTask"   , osPriorityNormal /*priority*/, 1000 /*stackBytes*/, numberDisplayTask);
+		static crt_demoqueue::NumberDisplayTask numberDisplayTask("NumberDisplayTask", osPriorityNormal /*priority*/, 1000 /*stackBytes*/); // Don't forget to call its start() memeber during setup().
+		static crt_demoqueue::NumberSendTask    numberSendTask   ("NumberSendTask"   , osPriorityNormal /*priority*/, 1000 /*stackBytes*/, numberDisplayTask);
 	}
 }

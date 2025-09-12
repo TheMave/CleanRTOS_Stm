@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-void testQueue_init();
+void demoFlag_init();
 
 #ifdef __cplusplus
 }

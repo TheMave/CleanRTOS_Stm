@@ -1,12 +1,12 @@
 // by Marius Versteegen, 2023
 
 // This file contains the code of multiple tasks that run concurrently and notify eachother using flags.
-#include <internals/examples/StmHwTimer/crt_TestHwTimer.h>
+#include <crt_TestHwTimer.h>
 #include <cstdio>
 extern "C" {
 	#include "crt_stm_hal.h"
     #include "main.h"  // bevat vaak GPIO-definities
-	#include "cmsis_os.h"
+	#include "cmsis_os2.h"
 	#include <inttypes.h>
 }
 

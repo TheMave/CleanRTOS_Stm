@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-void testPool_init();
+void demoQueue_init();
 
 #ifdef __cplusplus
 }

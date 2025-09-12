@@ -1,19 +1,22 @@
-// by Marius Versteegen, 2023
+// by Marius Versteegen, 2025
 
 // This file contains the code of multiple tasks that run concurrently and notify eachother using flags.
-#include "crt_TestFlag.h"
+#include "crt_DemoFlag.h"
 
-#include <cstdio>
 extern "C" {
+	// put c includes here
 	#include "crt_stm_hal.h"
-
-    #include "main.h"  // bevat vaak GPIO-definities
-	#include "cmsis_os.h"
+    #include "main.h"
+	#include "cmsis_os2.h"
 }
 
+// put c++ includes here
+#include <cstdio>
 #include "crt_CleanRTOS.h"
 
-namespace crt
+using namespace crt;
+
+namespace crt_demoflag
 {
 	class FlagListener : public Task
 	{
@@ -37,16 +40,20 @@ namespace crt
 	private:
 		void main() override
 		{
-			vTaskDelay(1000); // wait for other threads to have started up as well.
+			osDelay(800); // wait for other threads to have started up as well.
+			printf("\r\n----------------\r\n");
+			printf("DemoFlag_started\r\n");
+			printf("----------------\r\n");
+			osDelay(100);
 
 			while (true)
 			{
 				dumpStackHighWaterMarkIfIncreased(); 		// This function call takes about 0.25ms! It should be called while debugging only.
 
-				printf("FlagListener: Waiting for flagHi\r\n"); vTaskDelay(1);
+				printf("FlagListener: Waiting for flagHi\r\n"); osDelay(1);
 				wait(flagHi);								// Wait for flag to be set.
-				printf("FlagListener: flagHi was set\r\n"); vTaskDelay(1);
-				printf("FlagListener: Another thread said Hi to this thread\r\n"); vTaskDelay(1);
+				printf("FlagListener: flagHi was set\r\n"); osDelay(1);
+				printf("FlagListener: Another thread said Hi to this thread\r\n"); osDelay(1);
 			}
 		}
 	}; // end class FlagListener
@@ -66,23 +73,23 @@ namespace crt
 	private:
 		void main() override
 		{
-			vTaskDelay(1000); // wait for other threads to have started up as well.
+			osDelay(1000); // wait for other threads to have started up as well.
 
 			while (true)
 			{
 				dumpStackHighWaterMarkIfIncreased();
-				printf("FlagSetter: Saying Hi to FlagListener\r\n"); vTaskDelay(1);
+				printf("FlagSetter: Saying Hi to FlagListener\r\n"); osDelay(1);
 				flagListener.sayHi();
-				vTaskDelay(1000);
+				osDelay(1000);
 			}
 		}
 	}; // end class FlagSetter
-};// end namespace crt
+};// end namespace crt_demoflag
 
 extern "C" {
-	void testFlag_init()
+	void demoFlag_init()
 	{
-		static crt::FlagListener   flagListener("FlagListener", osPriorityNormal /*priority*/, 800 /*stackBytes*/);
-		static crt::FlagSetter     flagSetter  ("FlagSetter",   osPriorityNormal /*priority*/, 800 /*stackBytes*/, flagListener);
+		static crt_demoflag::FlagListener   flagListener("FlagListener", osPriorityNormal /*priority*/, 800 /*stackBytes*/);
+		static crt_demoflag::FlagSetter     flagSetter  ("FlagSetter",   osPriorityNormal /*priority*/, 800 /*stackBytes*/, flagListener);
 	}
 }

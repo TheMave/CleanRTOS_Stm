@@ -5,7 +5,7 @@
 extern "C" {
 //    #include "crt_stm_hal.h"
 //    #include "main.h"  // bevat vaak GPIO-definities
-	#include "cmsis_os.h"
+	#include "cmsis_os2.h"
 //	#include <inttypes.h>
 }
 

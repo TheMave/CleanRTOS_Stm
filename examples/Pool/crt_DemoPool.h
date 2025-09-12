@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-void testMutexSection_init();
+void demoPool_init();
 
 #ifdef __cplusplus
 }

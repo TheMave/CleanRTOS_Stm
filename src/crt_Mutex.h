@@ -4,9 +4,9 @@
 
 extern "C" {
 	#include "crt_stm_hal.h"
-	#include "cmsis_os.h"
-	#include <cassert>
+	#include "cmsis_os2.h"
 }
+#include <cassert>
 
 namespace crt
 {
@@ -48,7 +48,7 @@ namespace crt
 			{
 				assert(mutexID > pTask->mutexIdStack.top()); // Error : Potential Deadlock : Within each thread, never try to lock a mutex with lower mutex priority than a mutex that is locked(before it).
 
-				status = osMutexAcquire(mutexId, 0);  // 1 tick proberen
+				status = osMutexAcquire(mutexId, osWaitForever);
 				if (status == osOK)
 				{
 					assert(pTask->mutexIdStack.push(mutexID));// Assert would mean that either the amount of nested concurrently locked mutexes for this task exceeds the constant MAX_MUTEXNESTING, or the lock and unlock of the mutex are not performed in the same task.

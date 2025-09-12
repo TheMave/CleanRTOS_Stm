@@ -1,11 +1,11 @@
 // by Marius Versteegen, 2025
 
 // This file contains the code of multiple tasks that run concurrently and notify eachother using flags.
-#include <examples/Timers/crt_TestTimers.h>
-#include <examples/Timers/crt_TestTimersTask.h>
+#include <tests/Timers/crt_TestTimers.h>
+#include <tests/Timers/crt_TestTimersTask.h>
 
 extern "C" {
-	#include "cmsis_os.h"
+	#include "cmsis_os2.h"
 }
 
 #include "crt_CleanRTOS.h"

@@ -4,10 +4,10 @@
 
 extern "C" {
 	#include "crt_stm_hal.h"
-	#include "cmsis_os.h"
-	#include <cassert>
+	#include "cmsis_os2.h"
 }
 
+#include <cassert>
 namespace crt
 {
 	// A SimpleMutex protects a resource from concurrent access by multiple threads.
@@ -30,6 +30,7 @@ namespace crt
 	public:
 		SimpleMutex()
 		{
+			configASSERT(osKernelGetState() != osKernelInactive);
 			mutexId = osMutexNew(nullptr);
 			assert(mutexId != nullptr);
 		}
@@ -38,7 +39,7 @@ namespace crt
 		{
 			while (true)
 			{
-				status = osMutexAcquire(mutexId, 0);  // 1 tick proberen
+				status = osMutexAcquire(mutexId, osWaitForever);
 				if (status == osOK)
 					break;
 
