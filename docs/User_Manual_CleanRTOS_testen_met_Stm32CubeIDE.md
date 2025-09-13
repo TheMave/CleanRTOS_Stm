@@ -62,7 +62,7 @@ In grote lijnen is dit het proces dat in onderstaand document doorlopen wordt:
 - en freertos tabblad advanced settings:
   **USE_NEWLIB_REENTRANT->Enabled**
 
-- Om FreeRTOS warning weg te krijgen: **Pinout & configuration->system core->sys->TImebase Source-> kiest TIM7, TIM11 of Tim17 (in ieder geval NIET Tim2)**.
+- Om FreeRTOS warning weg te krijgen: **Pinout & configuration->system core->sys->TImebase Source-> kiest TIM7, TIM5 of Tim17 (liefst een 32 bits, maar in ieder geval NIET Tim2)**.
 
 - Wijzig evt **ClockConfiguration -> SYSCLK** naar believen, door deze via **PLLCLK** te laten lopen en te spelen met de voorafgaande multipliers (op de lorawan e5 mini kun je tot 48MHZ instellen).
 
@@ -119,9 +119,6 @@ Zet onder de include path options overal onder
 de volgende paths erbij(copy paste):
 
 ```xml
-<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FreeRTOS/Source/include"/>
-<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2"/>
-<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3"/>
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/src"/>
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/examples/Flag"/>
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/examples/Queue"/>
@@ -136,8 +133,9 @@ de volgende paths erbij(copy paste):
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/src/internals/tests/StmHwTimer"/>
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/src/internals/tests/Timers"/>
 ```
-
 (dus in totaal bij 4 include paths, voor gc debug, gcc debug, gc release en gcc release)
+
+Als het goed is zijn de subfolders van `../Middlewares/Third_Party/FreeRTOS/Source/` al toegevoegd. Zo niet, dan kun je dat later vanuit de project properties toevoegen.
 
 Zo gaan we ook de folders met linker sources toevoegen:
 
@@ -145,17 +143,17 @@ Zo gaan we ook de folders met linker sources toevoegen:
 
 ```xml
 <entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Libraries/CleanRTOS/src/internals"/>
-<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 ```
+.. en evt `<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>`mocht dat er nog niet bij staan.
 
 - **Save** de .cproject. 
 
 - **Sluit** de CubeIDE en open hem opnieuw (dan pas zie je textuele aanpassingen van .cproject terug). 
 
-- RMB op het project->**c/c++ General->Paths and Symbols**->Includes en "Source location". Verifieer dat die nu up to date zijn.
+- RMB op het project->properties->**c/c++ General->Paths and Symbols**->Includes en "Source location". Verifieer dat die nu up to date zijn.
   (anders had het handmatig folder voor folder toegevoegd moeten worden)
 
-- Sluit van de **stlink** (v2) de pinnetjes **SWD, SWO, (N)RST**, gnd aan aan de gelijknamige pinnetjes van het boardje.
+- Sluit van de **stlink** (v2) de pinnetjes **SWD, SWO, (N)RST**, gnd aan aan de gelijknamige pinnetjes van het boardje. Bij de blackpill zitten die vier pinnetjes op een aparte header aan de kopsekant.
 
 - Sluit igv stlink v3 ook **T_VCC** aan op de 3.3V van het boardje.
 
@@ -250,7 +248,6 @@ Dan zou het moeten bouwen.
 Om de test uit te voeren:
 
 - **RMB project -> Debug as** -> Selecteer de build in de Debug folder
-
 - Hij breakt standaard bij de start (HAL_Init())
 
 - Druk op **F8 (resume)**
