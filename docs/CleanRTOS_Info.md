@@ -60,6 +60,7 @@ Daarnaast bevat CleanRTOS nog een paar handige Utility klassen.
   - Dit is een generieke Handler klasse. Je kunt daarmee periodieke taken met dezelfde periode samenvoegen in een enkele taak. Dat bespaart resources en task-switch tijd.
 
 ## Uitleg via Video Serie
+
 Via de volgende video serie kun je je vanuit je luie stoel laten uitleggen hoe een en ander met CleanRTOS werkt. Het bestaat uit videos die het eenvoudige gebruik/toepassen van CleanRTOS laten zien. Er zijn ook videos die uitleggen hoe het onder de motorkap werkt, zodat je een-op-een de relatie met FreeRTOS kunt zien.
 
 - [CleanRTOS overview](https://youtu.be/P5RiUsPRDdY)
@@ -78,5 +79,3 @@ Via de volgende video serie kun je je vanuit je luie stoel laten uitleggen hoe e
 - [CleanRTOS Handler gebruik](https://youtu.be/8YMu4JQdMy8)
   - [CleanRTOS Handler onder de motorkap](https://youtu.be/tc_VfyLXJcc)
 - [CleanRTOS wachten op meerdere waitables tegelijk](https://youtu.be/VneJ876W3KA)
-
-
