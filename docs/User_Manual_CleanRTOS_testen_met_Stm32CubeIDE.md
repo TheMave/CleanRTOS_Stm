@@ -4,6 +4,12 @@ Uitgebreide informatie over wat CleanRTOS is, is [hier te vinden](https://github
 
 In dit document wordt je aan de hand genomen om het te gebruiken op Stm microcontrollers, via STM32CubeIDE.
 
+De meest recente commit is inmiddels succesvol getest op:
+
+- STM32F401CCU (een blackpill variant, STM32F4xx_hal familie)
+
+- STM32WLE5JC (STM32WLxx_hal familie)
+
 Idealiter zou je gewoon een kant en klaar project willen om CleanRTOS (of wat dan ook) te kunnen testen op elke STM microcontroller (zoals bij ESP-IDF, via set-target). Helaas is dat bij Stm niet mogelijk: Een Stm CubeIDE project moet speciaal worden aangemaakt voor de specifieke microcontroller familie die je gebruikt. 
 
 In onderstaande manual nemen we je daarbij bij de hand. 
@@ -195,6 +201,10 @@ int _write(int file, char *ptr, int len) {
 - Open **CleanRTOS/src/internals/crt_stm_hal.h**
   Zorg dat daar diezelfde include staat als die je vond bovenaan main.h.
   (daarmee wordt CleanRTOS compatible met je microcontroller familie)
+
+- Open **CleanRTOS/src/internals/stmHwTimer2.c**
+  Pas daar eventueel de include aan:
+   `#include "core_cm4.h" // of core_cm3.h / core_cm7.h afhankelijk van je MCU`
 
 - Open **main.c**
 

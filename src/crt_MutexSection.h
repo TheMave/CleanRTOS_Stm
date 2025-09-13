@@ -1,4 +1,4 @@
-// by Marius Versteegen, 2023
+// by Marius Versteegen, 2025
 
 // Mutex Sections can be used to avoid concurrent resource usage
 // within the scope they exist.

@@ -1,4 +1,4 @@
-// by Marius Versteegen
+// by Marius Versteegen, 2025
 
 #pragma once
 #include "crt_CleanRTOS.h"   // defines crt::MAX_NOF_TIMERS and using Timers = ...
@@ -104,6 +104,11 @@ namespace crt
         	bLongTimeChoppingActive = false;
         }
 
+        // For quick tests of LongTimerRelay: ability to override maxHwTime with lower value.
+        inline void setMaxHwTime (uint32_t maxHwTime){this->maxHwTime = maxHwTime;}
+        inline uint32_t getMaxHwTime(){return maxHwTime;}
+        inline TimerHandle getTimerHandle(){return hTimer;}
+
 	private:
         inline void handleStart(uint64_t duration_us)
         {
@@ -118,8 +123,9 @@ namespace crt
             	// Normal behaviour, no chopping required.
             	bLongTimeChoppingActive = false;
 
-            	// TODO tweak penalty for clock etc. (calibrate using crt_TestTimer)
-            	currentlyWaiting_us =  duration_us-80;
+            	uint64_t overhead_compensation = 50;// TODO tweak penalty for clock etc. (calibrate using crt_TestTimer)
+
+            	currentlyWaiting_us = (duration_us<=overhead_compensation) ? 1 : duration_us-overhead_compensation;
 
             	// Periodic hwTimer implies equal wait times, so only when no chopping and periodic.
             	// (it avoids restart of hw timer and is a bit faster, in that case).

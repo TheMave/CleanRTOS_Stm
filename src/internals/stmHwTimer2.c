@@ -159,6 +159,21 @@ void timer2_resume() {
     HAL_TIM_Base_Start_IT(&htim2);
 }
 
+// Onderstaand maskeert alleen - voorkomt tijdverlies maar is onveilig.
+// (getuige tests/TestTimers)
+// zou ook eigenlijk mute ipv pause moeten heten..
+// Reden: het systeem moet als het veel te verwerken krijgt, trager
+// gaan werken en niet proberen boven zijn vermogen te werken.
+//void timer2_pause(void) {
+//    // Masker alleen de update-interrupt; timer telt gewoon door.
+//    NVIC_DisableIRQ(TIM2_IRQn);
+//}
+//
+//void timer2_resume(void) {
+//    // Her-enable de interrupt. Als UIF pending is, vuurt de ISR direct.
+//    NVIC_EnableIRQ(TIM2_IRQn);
+//}
+
 void TIM2_IRQHandler(void) {
     if (__HAL_TIM_GET_FLAG(&htim2, TIM_FLAG_UPDATE) &&
         __HAL_TIM_GET_IT_SOURCE(&htim2, TIM_IT_UPDATE)) {

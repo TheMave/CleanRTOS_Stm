@@ -13,6 +13,6 @@ extern "C" {
 extern "C" {
 	void testIndexPool_init()
 	{
-		static crt::TestIndexPoolTask testIndexPoolTask("TestIndexPoolTask", osPriorityNormal /*priority*/, 1000 /*stackBytes*/); // Don't forget to call its start() member during setup().
+		static crt_testindexpool::TestIndexPoolTask testIndexPoolTask("TestIndexPoolTask", osPriorityNormal /*priority*/, 1000 /*stackBytes*/); // Don't forget to call its start() member during setup().
 	}
 }

@@ -1,3 +1,5 @@
+// by Marius Versteegen, 2025
+
 #pragma once
 
 // Onderstaande mumbo - jumbo is nodig, omdat deze header file

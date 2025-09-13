@@ -3,17 +3,21 @@
 #pragma once
 
 extern "C" {
+	// put c includes here
 	#include "crt_stm_hal.h"
     #include "main.h"
 	#include "cmsis_os2.h"
 	#include <inttypes.h>
 }
 
+// put c++ includes here
 #include <cstdio>
 #include "crt_CleanRTOS.h"
 #include "crt_IndexPool.h"
 
-namespace crt
+using namespace crt;
+
+namespace crt_testindexpool
 {
 	class TestIndexPoolTask : public Task
 	{
@@ -347,4 +351,4 @@ namespace crt
 			}
 		}
 	};
-};// end namespace crt
+};// end namespace crt_testindexpool

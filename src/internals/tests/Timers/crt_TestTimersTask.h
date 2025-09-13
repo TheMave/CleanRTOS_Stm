@@ -1,22 +1,28 @@
 // by Marius Versteegen, 2025
 
+// NB: Dit document laat zien hoe hwtimer2 intern door CleanRTOS gebruikt wordt.
+// Gebruik zelf niet hwtimer2, anders werken de timers in CleanRTOS niet meer.
+
 #pragma once
 
 extern "C" {
+	// put c includes here
 	#include "crt_stm_hal.h"
     #include "main.h"
 	#include "cmsis_os2.h"
 	#include <inttypes.h>
 }
 
+// put c++ includes here
 #include <cstdio>
 #include "crt_CleanRTOS.h"
 #include <crt_Timers.h>
 #include <crt_Time.h>
-
 #include "crt_PrintTools.h"
 
-namespace crt
+using namespace crt;
+
+namespace crt_testtimers
 {
 	static constexpr auto& print_u64 = PrintTools::print_u64; // short hand fp as alias.
 
@@ -71,6 +77,7 @@ namespace crt
 
 			printf("Amount of corresponding size in bytes that Timers takes: %" PRIu32 "\r\n",
 				   crt::Timers::getMemUsageBytes());
+			osDelay(500);
 
 			crt::TimerHandle hTimer1 = crt::Timers::createTimer("myTimer", myCallback1, &myUserArg);
 			crt::Timers::isValidTimerHandle(hTimer1);
@@ -186,4 +193,4 @@ namespace crt
 			}
 		}
 	};
-};// end namespace crt
+};// end namespace testtimers

@@ -1,3 +1,5 @@
+// by Marius Versteegen, 2025
+
 #include "crt_TestLed.h"
 
 #include <cstdio>
@@ -10,11 +12,13 @@ extern "C" {
 #include "crt_OutputPin.h"
 #include "crt_Task.h"
 
+// Dit is een soort helloworld test.
 // link naar de huart2 instance in main.c
 // (it has been put there by the cubeide configurator after activating USART2 there)
 extern UART_HandleTypeDef huart2;
 
-namespace crt
+using namespace crt;
+namespace crt_testled
 {
 	class LedTask : public Task
 	{
@@ -59,10 +63,10 @@ namespace crt
 			testManualToggle();
 		}
 	};
-}// end namespace crt
+}// end namespace crt_testled
 
 void testLed_init()
 {
 	printf("Init vanuit C++\n");
-	static crt::LedTask ledTask("LedTask", osPriorityNormal, 2000/*Bytes*/);
+	static crt_testled::LedTask ledTask("LedTask", osPriorityNormal, 2000/*Bytes*/);
 }

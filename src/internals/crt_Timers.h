@@ -1,3 +1,5 @@
+// by Marius Versteegen, 2025
+
 #pragma once
 
 extern "C" {
@@ -92,7 +94,10 @@ namespace crt
 		            t->bRunning = false;
 		        }
 		    }
-		    reassignHardwareTimerInterruptToFirstInList(now_us);
+
+		    if (headChanged || _hTimerHardwareActivatedFor == TimerHandle_None) {
+		        reassignHardwareTimerInterruptToFirstInList(now_us);
+		    }
 		}
 
 
@@ -143,6 +148,10 @@ namespace crt
 		    }
 		    _hTimerHardwareActivatedFor = _pHead->hTimer;
 
+		    // save few mics drag for next firing.. but at by loading
+		    // the mcu extra by calling below .. is it worth it?
+		    // from latest tests (DemoMultiTimer_WaitAny), I think its not.
+		    // now_us = Time::instance()->getTimeMicroseconds();
 		    uint64_t delta64 = (_pHead->wakeTime_us > now_us)
 		                     ? (_pHead->wakeTime_us - now_us)
 		                     : 1;

@@ -6,18 +6,20 @@
 #include <cstdio>
 
 extern "C" {
+	// put c includes here
 	#include "crt_stm_hal.h"
-
-    #include "main.h"  // bevat vaak GPIO-definities
+    #include "main.h"
 	#include "cmsis_os2.h"
 	#include <inttypes.h>
 }
 
-// by Marius Versteegen, 2023
+// put c++ includes here
 #include <crt_CleanRTOS.h>
 #include "crt_OutputPin.h"
 
-namespace crt
+using namespace crt;
+
+namespace crt_testtimer
 {
 	#define USE_SCOPE_PIN
 
@@ -92,7 +94,7 @@ namespace crt
 	    {
 	    	// Redefine maxHwTime to a much lower value, to allow for shorter tests.
 	    	// We can do that because TestTimer is a friend class of Timer.
-            timer.maxHwTime = (uint32_t)((((uint64_t)1)<<nofBitsHwTimer)-1);
+            timer.setMaxHwTime ((uint32_t)((((uint64_t)1)<<nofBitsHwTimer)-1));
 	    }
 
 	    // ----------- tests -----------------------------------------------------
@@ -307,9 +309,9 @@ namespace crt
 			osDelay(500);
 			// Verkort HW-timer naar 20 bits zodat de randwaarden in seconden vallen.
 			//overwriteMaxHwTime(sleepTimer, 20); // ~1.048.575 us max
-			const uint64_t e1 = (uint64_t)sleepTimer.maxHwTime - 1; // friend: toegestaan
-			const uint64_t e2 = (uint64_t)sleepTimer.maxHwTime;
-			const uint64_t e3 = (uint64_t)sleepTimer.maxHwTime + 1; // forceert long-pad
+			const uint64_t e1 = (uint64_t)sleepTimer.getMaxHwTime() - 1; // friend: toegestaan
+			const uint64_t e2 = (uint64_t)sleepTimer.getMaxHwTime();
+			const uint64_t e3 = (uint64_t)sleepTimer.getMaxHwTime() + 1; // forceert long-pad
 
 			printf("[edges] around maxHwTime: ");
 			print_u64("e1=", e1);  print_u64("e2=", e2);  print_u64("e3=", e3);
@@ -449,11 +451,11 @@ namespace crt
 			       (uint32_t)crt::Timers::getMaxNofTimers());
 
 			// Mix of durations; verify each timer wakes its own task.
-			tA.start(120'000); printf("tA h=%d\r\n", (int)tA.hTimer);
-			tB.start(80'000);  printf("tB h=%d\r\n", (int)tB.hTimer);
-			tC.start(150'000); printf("tC h=%d\r\n", (int)tC.hTimer);
-			tD.start(200'000); printf("tD h=%d (valid=%d)\r\n", (int)tD.hTimer,
-			                          crt::Timers::isValidTimerHandle(tD.hTimer));
+			tA.start(120'000); printf("tA h=%d\r\n", (int)tA.getTimerHandle());
+			tB.start(80'000);  printf("tB h=%d\r\n", (int)tB.getTimerHandle());
+			tC.start(150'000); printf("tC h=%d\r\n", (int)tC.getTimerHandle());
+			tD.start(200'000); printf("tD h=%d (valid=%d)\r\n", (int)tD.getTimerHandle(),
+			                          crt::Timers::isValidTimerHandle(tD.getTimerHandle()));
 
 			wait(tB); printf("[multi] B fired\r\n");
 			wait(tA); printf("[multi] A fired\r\n");
@@ -696,14 +698,14 @@ namespace crt
 				// test_zero_or_too_small();
 	        }
 		}
-	}; // end class TestTimers
-};// end namespace crt
+	}; // end class TestTimer
+};// end namespace crt_testTimer
 
 
 extern "C" {
 	void testTimer_init()
 	{
 		crt::cleanRTOS_init();
-		static crt::TestTimer testTimer("TestTimer", osPriorityNormal  /*priority*/, 2000 /*stackBytes*/);
+		static crt_testtimer::TestTimer testTimer("TestTimer", osPriorityNormal  /*priority*/, 2000 /*stackBytes*/);
 	}
 }

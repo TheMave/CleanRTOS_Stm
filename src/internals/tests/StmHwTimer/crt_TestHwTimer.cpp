@@ -1,17 +1,19 @@
-// by Marius Versteegen, 2023
+// by Marius Versteegen, 2025
 
 // This file contains the code of multiple tasks that run concurrently and notify eachother using flags.
-#include <crt_TestHwTimer.h>
-#include <cstdio>
+
 extern "C" {
+	// put c includes below
 	#include "crt_stm_hal.h"
     #include "main.h"  // bevat vaak GPIO-definities
 	#include "cmsis_os2.h"
 	#include <inttypes.h>
 }
 
+// put c++ includes below
+#include <crt_TestHwTimer.h>
+#include <cstdio>
 #include "crt_CleanRTOS.h"
-
 #include "stmHwTimer2.h"
 #include "stmCycleCounter.h"
 
@@ -21,7 +23,9 @@ extern "C" {
 // To see the test output in the serial monitor, just press the button that is assigned
 // to the logger.
 
-namespace crt
+using namespace crt;
+
+namespace crt_hwtimer
 {
 	//extern crt::ILogger& logger;
 
@@ -59,16 +63,17 @@ namespace crt
 			uint32_t timerTime_us=1;
 
 			startCycleCount();
-			uint32_t nCount =0;
-			uint32_t nCycles=0;
-			uint32_t nPrevCycleCount=0;
-			uint32_t nCountFires=0;
 			timer2_fire_after_us(timerTime_us); // start een one-shot timer van 2 µs
 
 			while (true)
 			{
-				dumpStackHighWaterMarkIfIncreased();// This function call takes about 0.25ms! It should be called while debugging only.
+				uint32_t nCount =0;
+				uint32_t nCycles=0;
+				uint32_t nPrevCycleCount=0;
+				uint32_t nCountFires=0;
 
+				dumpStackHighWaterMarkIfIncreased();// This function call takes about 0.25ms! It should be called while debugging only.
+				osDelay(500);
 				for(;;)
 				{
 					nCountFires = 0;
@@ -88,24 +93,25 @@ namespace crt
 					}
 				}
 
+				osDelay(500);
 				dumpStackHighWaterMarkIfIncreased();
 
-				osDelay(50000);
+				osDelay(3000);
 			}
 		}
 	}; // end class TestHwTimerTask
-};// end namespace crt
+};// end namespace crt_hwtimer
 
 
 // initialisation. moet volatile zijn - want communicatiepunt voor elders.
 // anders kan compiler dit bij optimalisaties weg-optimaliseren. (de compiler weet niet veel van implementatis elders).
-volatile uint32_t crt::TestHwTimerTask::bGlobal = 0; // De compiler wil dit buiten de namespace hebben..
+volatile uint32_t crt_hwtimer::TestHwTimerTask::bGlobal = 0; // De compiler wil dit buiten de namespace hebben..
 
 extern "C" {
 	void testHwTimer_init()
 	{
 		// kernal not started yet: printf werkt hier nog niet..
-		static crt::TestHwTimerTask testHwTimerTask("TestHwTimerTask", osPriorityNormal /*priority*/, 2000 /*stackBytes*/); // Don't forget to call its start() member during setup().
+		static crt_hwtimer::TestHwTimerTask testHwTimerTask("TestHwTimerTask", osPriorityNormal /*priority*/, 1000 /*stackBytes*/); // Don't forget to call its start() member during setup().
 	}
 }
 

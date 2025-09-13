@@ -1,10 +1,15 @@
 # Error
+
 Er trad bij test_cpu_load_jitter_crash een error op:
+
 ```text
 -------------------------------------------------- test_cpu_load_jitter -------------------------------------------------- [jitter+load] dt=: 12019 assertion "error != osFlagsErrorResource" failed: file "../Libraries/CleanRTOS/src/crt_Task.h", line 89, function: void crt::Task::setEventBits(uint32_t)
 ```
+
 # Opgelost mbv chatgpt
+
 In FreeRTOSConfig aangepast:
+
 ```c
 #define configUSE_TIMERS                     1
 #define configTIMER_QUEUE_LENGTH             32      // bv. 32 voor 2ms periodiek
@@ -13,7 +18,6 @@ In FreeRTOSConfig aangepast:
 
 // (voor de CMSIS wrapper – dan werkt osEventFlagsSet ook vanuit ISR)
 #define configUSE_OS2_EVENTFLAGS_FROM_ISR    1
-
 ```
 
 De oude, default waardes zijn:
@@ -26,12 +30,12 @@ De oude, default waardes zijn:
 
 // (voor de CMSIS wrapper – dan werkt osEventFlagsSet ook vanuit ISR)
 #define configUSE_OS2_EVENTFLAGS_FROM_ISR    1
-
 ```
 
 Dat blijkt te werken.
 
 # Analyse door cgpt van waarom het werkt
+
 (MAV is mijn paraaf, daar licht ik het aangegeven alternatief toe)
 
 ## Wat ging er mis (kort)
@@ -62,7 +66,6 @@ Je hebt in `FreeRTOSConfig.h` de Timer Service “goed” aangezet en ruimer gem
 
 Gevolg: `xEventGroupSetBitsFromISR` kan z’n deferred werk kwijt, en jouw eventbits vanuit de ISR falen niet meer. De test loopt nu door.
 
-
 ## Mogelijke nadelen / aandachtspunten van de wijziging
 
 - **Hoge prioriteit Timer Service Task**
@@ -85,5 +88,6 @@ Gevolg: `xEventGroupSetBitsFromISR` kan z’n deferred werk kwijt, en jouw event
 Zo voorkom je dus het gebruik van de Timer Service in zijn geheel, maar wel ten koste van een extra indirectie voor korte timers.
 ... en verder werkt het niet met CleanRTOS Queue as is:momenteel doet CleanRTOS Queue ook een setEventBits tbv waitall/waitany. Daar zal dan dus weer een workaround voor bedacht moeten worden.
 
-Voor nu laat ik het bij de huidige oplossing.
-Maar goed om hiervan bewust te zijn vandaar deze .md file erbij.
+Enfin - mits de prioriteiten van de tasks gelijk worden genomen, lijkt alles via de Relay laten lopen ook de jitter-crash te kunnen voorkomen, zonder dat daar de aanpassingen in de freertos config voor nodig zijn. Voor nu pas ik dat dus toe.
+
+Maar goed om van dit alles bewust te zijn vandaar deze .md file erbij.

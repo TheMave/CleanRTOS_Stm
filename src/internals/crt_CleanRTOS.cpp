@@ -1,12 +1,8 @@
-
-// by Marius Versteegen, 2023
+// by Marius Versteegen, 2025
 
 //#include <cstdio>
 extern "C" {
-//    #include "crt_stm_hal.h"
-//    #include "main.h"  // bevat vaak GPIO-definities
 	#include "cmsis_os2.h"
-//	#include <inttypes.h>
 }
 
 #include "crt_CleanRTOS.h"
