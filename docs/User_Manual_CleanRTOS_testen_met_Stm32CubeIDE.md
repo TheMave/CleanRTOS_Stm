@@ -62,7 +62,7 @@ In grote lijnen is dit het proces dat in onderstaand document doorlopen wordt:
 - en freertos tabblad advanced settings:
   **USE_NEWLIB_REENTRANT->Enabled**
 
-- Om FreeRTOS warning weg te krijgen: **Pinout & configuration->system core->sys->TImebase Source-> kiest TIM7 of Tim17**.
+- Om FreeRTOS warning weg te krijgen: **Pinout & configuration->system core->sys->TImebase Source-> kiest TIM7, TIM11 of Tim17 (in ieder geval NIET Tim2)**.
 
 - Wijzig evt **ClockConfiguration -> SYSCLK** naar believen, door deze via **PLLCLK** te laten lopen en te spelen met de voorafgaande multipliers (op de lorawan e5 mini kun je tot 48MHZ instellen).
 
@@ -129,6 +129,7 @@ de volgende paths erbij(copy paste):
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/examples/Timer"/>
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/examples/Pool"/>
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/examples/MutexSection"/>
+<listOptionValue builtIn="false" value="../Libraries/CleanRTOS/tests/Timer"/>
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/src/internals"/>
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/src/internals/tests/TestLed"/>
 <listOptionValue builtIn="false" value="../Libraries/CleanRTOS/src/internals/tests/IndexPool"/>
