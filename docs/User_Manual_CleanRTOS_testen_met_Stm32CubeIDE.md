@@ -79,12 +79,36 @@ In grote lijnen is dit het proces dat in onderstaand document doorlopen wordt:
 - **Of** als **alternatief** voor clonen als bovenstaand - **als je nieuwe project een eigen git heeft**, kun je CleanRTOS als **submodule** toevoegen:
   
   - ```bash
-    git submodule add <git-url-extern> Middlewares/External/<naam>
-    git commit -m "Add external library as submodule"
+    git submodule add <git-url-extern> Libraries/CleanRTOS/<naam>
+    git commit -m "Add CleanRTOS as submodule"
     ```
 
 - Klik in CubeIDE op het project in de **Project Explorer** tab, en druk F5 (**refresh**).
   Je ziet nu de Libraries folder met CleanRTOS subfolder in het project verschijnen.
+
+- Open **main.h**, in **Core/Inc**
+  **Kijk naar de bovenste include**.
+  Dat is de include van de HAL van je microcontroller familie.
+  Bijvoorbeeld:  `#include "stm32wlxx_hal.h"`
+
+- voeg een file genaamd `crt_stm_hal.h` toe aan de folder "Core\Inc", en zet daarin de include die je vond in de vorige stap:
+```h
+// Copy to this location the hal include for the current stm mcu
+// It is the first include that you can find in Core/Inc/main.h
+
+// #include "stm32f4xx_hal.h" // for hl serie (blackpill, STM32F401CCU)
+#include "stm32wlxx_hal.h" // for wl serie (lorawan e5 mini, STM32WLE5JC)
+```
+
+Iets soortgelijks voor de core dependency:
+- voeg een file genaamd `crt_core_cm.h` toe aan de folder "Core\Inc", en zet daarin de volgende code:
+```h
+- Open **CleanRTOS/src/internals/stmHwTimer2.c**
+  Pas daar eventueel de include aan:
+   #include "core_cm4.h" // of core_cm3.h / core_cm7.h afhankelijk van je MCU`
+```
+
+Middels die file configureer je CleanRTOS voor een bepaalde Stm serie.
 
 - Voor debug/logging gebruiken we usart**2** (uart wordt bijvoorbeeld bij de e5 mini al gebruikt voor comms met de lora module):
 
@@ -191,19 +215,6 @@ int _write(int file, char *ptr, int len) {
     return len;
 }
 ```
-
-- Open **main.h**, in **Core/Inc**
-  **Kijk naar de bovenste include**.
-  Dat is de include van de HAL van je microcontroller familie.
-  Bijvoorbeeld:  `#include "stm32wlxx_hal.h"`
-
-- Open **CleanRTOS/src/internals/crt_stm_hal.h**
-  Zorg dat daar diezelfde include staat als die je vond bovenaan main.h.
-  (daarmee wordt CleanRTOS compatible met je microcontroller familie)
-
-- Open **CleanRTOS/src/internals/stmHwTimer2.c**
-  Pas daar eventueel de include aan:
-   `#include "core_cm4.h" // of core_cm3.h / core_cm7.h afhankelijk van je MCU`
 
 - Open **main.c**
 

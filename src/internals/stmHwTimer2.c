@@ -17,7 +17,7 @@
 //// So 4us is lost to overhead. That will grow when it will be shared
 //// to accomodate all timer objects of all tasks.
 
-#include "core_cm4.h"  // of core_cm3.h / core_cm7.h afhankelijk van je MCU
+#include "crt_core_cm.h" // deze header include de core voor het juiste cortex m type
 
 //// Cycle counting
 //// Wanneer moet je oppassen?
