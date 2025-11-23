@@ -25,17 +25,37 @@ namespace crt
     public:
         Flag(Task* pTask) : Waitable(WaitableType::wt_Flag), pTask(pTask)
         {
+            init(pTask);
+        }
+
+        Flag() : Waitable(WaitableType::wt_Flag), pTask(nullptr)
+        {
+            // init is postponed, when this constructor is used.
+            // that allows instantiation of flags in arrays.
+        }
+
+        void init(Task* pTask)
+        {
+            assert(pTask!=nullptr);
+            assert(!isInitialized()); // this init function should only be called once.
             Waitable::init(pTask->queryBitNumber(this));
         }
 
-        osMutexAttr_t attr = {};
+        bool isInitialized()
+        {
+            return (Waitable::getBitMask() != 0);
+        }
+
+        //osMutexAttr_t attr = {}; // wie gebruikt dit? laten we het eens uitcommentarieren.
         void set()
         {
+            assert(pTask!=nullptr);
             pTask->setEventBits(Waitable::getBitMask());
         }
 
 		void clear()
 		{
+            assert(pTask!=nullptr);
 			pTask->clearEventBits(Waitable::getBitMask());
 		}
     };
