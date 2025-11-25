@@ -56,7 +56,8 @@ namespace crt
 			if(_pInstance != nullptr)
 			{
 				assert(instance == nullptr); // initialisation of this Task object should only happen once  (like singleton).
-				// Typically, it should be done in the init function of CleanRTOS.
+				// Typically, it should be done in the init function of CleanRTOS,
+				// calling crt::cleanRTOS_init() before you instantiate any other tasks.
 			}
 			else
 			{
@@ -80,11 +81,15 @@ namespace crt
 			return Time::instance()->getTimeSeconds_impl();
 		}
 
+		static inline uint64_t getTimeMilliseconds()
+		{
+			return Time::instance()->getTimeMilliseconds_impl();
+		}
+		
 		static inline uint64_t getTimeMicroseconds()
 		{
 			return Time::instance()->getTimeMicroseconds_impl();
 		}
-
 
 	private:
 
@@ -93,6 +98,11 @@ namespace crt
 		inline uint64_t getTimeMicroseconds_impl()
 		{
 			return getTotalCycleCount_impl() * 1000000 / uint64_t(SystemCoreClock);
+		}
+
+		inline uint64_t getTimeMilliseconds_impl()
+		{
+			return getTotalCycleCount_impl() * 1000 / uint64_t(SystemCoreClock);
 		}
 
 		inline uint64_t getTimeSeconds_impl()

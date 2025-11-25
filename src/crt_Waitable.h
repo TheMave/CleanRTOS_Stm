@@ -23,7 +23,7 @@ namespace crt
 	protected:
 		uint32_t		bitNumber;
 		uint32_t		bitMask;
-		static const uint32_t	bitMaskUndefined = 0x0fffffff;
+		static const uint32_t	bitMaskUndefined = 0;
 		WaitableType    waitableType = WaitableType::wt_None;
 
 	public:

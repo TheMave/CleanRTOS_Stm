@@ -37,6 +37,7 @@ namespace crt
         void init(Task* pTask)
         {
             assert(pTask!=nullptr);
+            this->pTask=pTask;
             assert(!isInitialized()); // this init function should only be called once.
             Waitable::init(pTask->queryBitNumber(this));
         }
