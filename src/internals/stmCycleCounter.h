@@ -32,7 +32,7 @@ extern "C" {
 
 // obs: Call startCycleCount ONLY ONCE .. it is periodically restarted. use crt_StmTime to measure microseconds instead.
 static inline void __attribute__((always_inline)) startCycleCount(void) {
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    // CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
     DWT->CYCCNT  = 0;
     DWT->CTRL   |= DWT_CTRL_CYCCNTENA_Msk;
 }
