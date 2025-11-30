@@ -7,6 +7,8 @@ extern "C" {
     #include "main.h"           // bevat vaak GPIO-definities (LED_PIN, enz.)
 }
 
+#include "c_printing.h"
+
 namespace crt
 {
 	class PrintTools {
@@ -16,9 +18,7 @@ namespace crt
 			        char buf[32]; char* p = buf + sizeof(buf); *--p = '\0';
 			        if (v == 0) *--p = '0';
 			        while (v) { *--p = (char)('0' + (v % 10)); v /= 10; }
-			        printf("%s: %s\r\n", label, p);
+			        safe_printf("%s: %s\n", label, p);
 			    }
-
-
 	};
 } // end namespace crt

@@ -15,7 +15,7 @@ extern "C" {
 #include "crt_std_Stack.h"
 #include "FreeRTOS.h"
 #include "event_groups.h"
-
+#include "c_printing.h"
 namespace crt
 {
 	class Task
@@ -238,7 +238,7 @@ namespace crt
             {
                 prev_stack_hwm = temp;
 
-                printf("Task %s has left: %lu stack bytes and %u heap bytes\r\n",
+                safe_printf("Task %s has left: %lu stack bytes and %u heap bytes\n",
                        taskName,
                        prev_stack_hwm * sizeof(StackType_t),
                        (unsigned int)xPortGetFreeHeapSize());
