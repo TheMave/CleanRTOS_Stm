@@ -384,8 +384,7 @@ namespace crt_testtimer
 				sleepTimer.stop();  // should cancel; no event should arrive
 				// Wait briefly to catch late events
 				osDelay(2500);
-				pollAny(sleepTimer);
-				if(!hasFired(sleepTimer))
+				if(!isSet(sleepTimer))
 				{
 					printf("[stop_during_chunk] no event observed (OK)\r\n");
 					osDelay(500);
@@ -515,9 +514,9 @@ namespace crt_testtimer
 					volatile uint32_t x=0;
 					for (uint32_t i=0;i<200000;i++) x+=i; // spin
 					osDelay(1);
-					pollAny(flagSuspend);
-					if(hasFired(flagSuspend))
+					if(isSet(flagSuspend))
 					{
+						flagSuspend.clear();
 						flagResume.clear();
 						wait(flagResume);
 					}

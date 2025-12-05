@@ -191,17 +191,6 @@ namespace crt
 				osWaitForever); // xTicksToWait)
 		}
 
-		// non-blocking variation of waitAny - mainly for test purposes.
-		// hasFired should still be used afterward to check the result.
-		inline void pollAny(uint32_t bitsToWaitFor)
-		{
-			latestResult = osEventFlagsWait(
-				hFlags,
-				bitsToWaitFor,
-				osFlagsWaitAny | osFlagsNoClear,
-				0); // xTicksToWait)
-		}
-
 		inline bool hasFired(Waitable& waitable)
 		{
             uint32_t bitmask = waitable.getBitMask();
@@ -213,6 +202,39 @@ namespace crt
             }
             return result;
 		}
+
+		// Peek if the waitable has fired without resetting it and without waiting for it.
+        inline bool isSet(Waitable& waitable)
+        {
+        	return isAllSet(waitable.getBitMask());
+        }
+
+        // The function below can be used to peek if the waitables have fired,
+        // without resetting them or waiting for them.
+        inline bool isAllSet(uint32_t bitsToWaitFor)
+        {
+			latestResult = osEventFlagsWait(
+				hFlags,
+				bitsToWaitFor,
+				osFlagsWaitAll | osFlagsNoClear,
+				0); // xTicksToWait)
+
+			return (bitsToWaitFor == latestResult);
+        }
+
+        // The function below can be used to peek if any waitables have fired,
+        // without resetting them or waiting for them.
+        // You could test which one afterward, using the function hasFired.
+        inline bool isAnySet(uint32_t bitsToWaitFor)
+        {
+			latestResult = osEventFlagsWait(
+				hFlags,
+				bitsToWaitFor,
+				osFlagsWaitAny | osFlagsNoClear,
+				0); // xTicksToWait)
+
+			return ((bitsToWaitFor & latestResult) != 0);
+        }
 
 		inline const char* getName()
 		{
