@@ -90,6 +90,16 @@ namespace crt
 			return osMessageQueueGetCount(qh);
 		}
 
+		bool isFull()
+		{
+			return (getNofMessagesWaiting()==COUNT);
+		}
+
+		bool isEmpty()
+		{
+			return (getNofMessagesWaiting()==0);
+		}
+
 		void clear()
 		{
 			while (osMessageQueueGetCount(qh) > 0)

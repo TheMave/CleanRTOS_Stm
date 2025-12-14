@@ -42,6 +42,20 @@ namespace crt
 			item = data;
 		}
 
+		// atomic update via static function without additional argument
+	    void atomicUpdate(void (*op)(T&)) {
+	        SimpleMutexSection sms(simpleMutex);
+	        op(data);
+	    }
+
+	    // atomic update via static function with additional argument
+	    // (could be struct if you need more than one argument)
+	    template <typename A1>
+	    void atomicUpdate(void (*op)(T&, A1), A1 a1) {
+	        SimpleMutexSection sms(simpleMutex);
+	        op(data, a1);
+	    }
+
 		// atomic update via static function without additional argument, then read
 	    void readAtomicUpdate(T& item, void (*op)(T&)) {
 	        SimpleMutexSection sms(simpleMutex);

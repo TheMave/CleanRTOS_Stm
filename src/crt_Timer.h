@@ -96,6 +96,7 @@ namespace crt
 
         inline void stop()
         {
+			if(!Timers::isValidTimerHandle(hTimer)) return;
         	longTimerRunId++;
         	crt::Timers::stopTimer(hTimer);
         	pTask->clearEventBits(bitMask);
