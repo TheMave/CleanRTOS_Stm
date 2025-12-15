@@ -101,7 +101,7 @@ public:
         }
 
         static Iterator end(RingBuffer<T, CAPACITY>* buf) {
-            return Iterator(buf, 0, true);
+            return Iterator(buf, buf->head, true);
         }
 
     private:
