@@ -1,13 +1,13 @@
 // by Marius Versteegen, 2025
 
 //#include <cstdio>
-extern "C" {
-	#include "cmsis_os2.h"
-}
-
 #include "crt_CleanRTOS.h"
 #include <crt_Time.h>
 #include "crt_LongTimerRelay.h"
+
+extern "C" {
+	#include "cmsis_os2.h"
+}
 
 void crt::cleanRTOS_init()
 {

@@ -16,6 +16,8 @@ extern "C" {
 #include "FreeRTOS.h"
 #include "event_groups.h"
 #include "c_printing.h"
+
+using namespace crt_std;
 namespace crt
 {
 	class Task
@@ -33,7 +35,7 @@ namespace crt
         uint32_t timersMask;        // Every bit in this mask belongs to a timer.
 
         uint32_t latestResult;
-		std::Stack<uint32_t, MAX_MUTEXNESTING> mutexIdStack;
+		crt_std::Stack<uint32_t, MAX_MUTEXNESTING> mutexIdStack;
 
 	private:
 		osEventFlagsId_t   hFlags;
