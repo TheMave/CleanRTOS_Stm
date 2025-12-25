@@ -61,8 +61,10 @@ namespace crt
             }
             else
             {
-                // Just in case this queue.read is called directly, without preceding
-                // waitAny or waitAll (which would have cleared the corresponding bit).
+            	//!!! TODO: check esp32 version on this behaviour as well!
+            	// Especially needed to explicitly clear at read, because wait_any
+            	// and wait_all don't do that.
+            	pTask->clearEventBits(Waitable::getBitMask());
             }
 			//assert(rc == pdPASS);
 		}
