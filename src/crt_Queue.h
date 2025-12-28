@@ -52,20 +52,23 @@ namespace crt
 				printf("osMessageGet failed\r\n"); vTaskDelay(1);
 			}
 
-            if((pTask!=nullptr) && (osMessageQueueGetCount(qh) > 0))
-            {
-                // The queue is not empty yet,
-                // Make sure that the corresponding eventbit gets set again,
-                // Such that a wait for the queue will fire.
-                pTask->setEventBits(Waitable::getBitMask());
-            }
-            else
-            {
-            	//!!! TODO: check esp32 version on this behaviour as well!
-            	// Especially needed to explicitly clear at read, because wait_any
-            	// and wait_all don't do that.
-            	pTask->clearEventBits(Waitable::getBitMask());
-            }
+            if(pTask!=nullptr) 
+			{
+				if (osMessageQueueGetCount(qh) > 0)
+				{
+					// The queue is not empty yet,
+					// Make sure that the corresponding eventbit gets set again,
+					// Such that a wait for the queue will fire.
+					pTask->setEventBits(Waitable::getBitMask());
+				}
+				else
+				{
+					//!!! TODO: check esp32 version on this behaviour as well!
+					// Especially needed to explicitly clear at read, because wait_any
+					// and wait_all don't do that.
+					pTask->clearEventBits(Waitable::getBitMask());
+				}
+			}
 			//assert(rc == pdPASS);
 		}
 
