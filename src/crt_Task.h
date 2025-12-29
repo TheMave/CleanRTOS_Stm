@@ -119,6 +119,20 @@ namespace crt
         	assert(error != osFlagsErrorParameter);
         	assert((error & osFlagsError)==0); // Make sure the main bit indicating an error is not set.
 
+			// Over osFlagsErrorResource: als die vuurt, is het omdat 
+			// osEventFlagsSet vanuit een ISR niet direct die eventbits set
+			// (omdat dat te sloom is/mutex protected), waar een callback
+			// aan een queue toevoegt die dat moet gaan doen.
+			// maar als de ISR heel vaak vuurt, loopt die queue vol voordat hij leeg is.
+			// Dat kan vervelend zijn als de ene interruptbron die queue tot de nok vult,
+			// waardoor een andere interruptbron geen flag (of eventbit bij een queue) meer
+			// kan setten.
+
+			// Ergo:
+			// 1 - zorg voor een debounce / zorg dat ISR's niet te vaak mogen vuren, als het kan,
+			//     zodat je minder kans hebt dat bovenstaande assert vuurt.
+			// 2 - Belangrijkst: ga er in je design van uit dat interrupt berichten verloren kunnen gaan.
+
 //			// In sommige CMSIS builds is osEventFlagsSet-from-ISR uitgeschakeld.
 //			// Detecteer ISR en gebruik dan direct de FreeRTOS API.
 //			if (__get_IPSR() != 0U) { // we zitten in een ISR

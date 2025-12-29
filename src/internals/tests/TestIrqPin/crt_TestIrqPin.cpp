@@ -38,7 +38,7 @@ namespace crt_testirqpin {
     {
     private:
         OutputPin led;
-        IrqPin    button;
+        IrqPin    irqPin_button;
         Flag      irqFlag;
 
         volatile uint32_t irqCount;
@@ -62,9 +62,9 @@ namespace crt_testirqpin {
         TestIrqTask(const char *taskName, osPriority_t taskPriority, unsigned int taskSizeBytes) :
             Task(taskName, taskPriority, taskSizeBytes),
             led(LED_PORT, LED_PIN),
-            // Typical user-button is active-low => falling edge, with pull-up.
-            button(GPIOA, GPIO_PIN_9, this, &TestIrqTask::buttonIsr,
-                   IrqTrigger::ON_FLANK_DOWN, GPIO_PULLUP, 5, 0),
+            // Typical user-irqPin_button is active-low => falling edge, with pull-up.
+            irqPin_button(GPIOA, GPIO_PIN_9, this, &TestIrqTask::buttonIsr,
+                   IrqTrigger::ON_FLANK_DOWN, GPIO_PULLUP, 5, 0, true /*autoDisableOnFire*/),
             irqFlag(this),
             irqCount(0),
             lastCount(0)
@@ -85,12 +85,13 @@ namespace crt_testirqpin {
             osDelay(2000);
 
             safe_printf("Enabling IRQ now.\r\n");
-            button.enable();
+            irqPin_button.enable();
 
             while (true)
             {
                 // Block until ISR sets the flag
                 wait(irqFlag);
+                irqPin_button.enable(); // irqPin_button auto-disabled, so I enable it again, such that it can listen for the next interrupt.
 
                 // Process all pending interrupts since last wake-up
                 uint32_t c = irqCount;
@@ -104,10 +105,10 @@ namespace crt_testirqpin {
                     if (lastCount == 10)
                     {
                         safe_printf("Disabling IRQ for 3 seconds...\r\n");
-                        button.disable();
+                        irqPin_button.disable();
                         osDelay(3000);
                         safe_printf("Enabling IRQ again.\r\n");
-                        button.enable();
+                        irqPin_button.enable();
                     }
                 }
             }

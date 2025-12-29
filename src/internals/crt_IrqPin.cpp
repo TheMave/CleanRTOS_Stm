@@ -7,11 +7,10 @@ namespace crt {
 IrqPin::IsrCtxFn IrqPin::s_ctxFn[16]      = { nullptr };
 void*            IrqPin::s_ctx[16]        = { nullptr };
 IrqPin::IsrFn    IrqPin::s_legacyFn[16]   = { nullptr };
+IrqPin*          IrqPin::s_ownerObj[16]   = { nullptr };
 GPIO_TypeDef*    IrqPin::s_ownerPort[16]  = { nullptr };
 
-static inline bool isPowerOfTwo(uint16_t v) {
-    return v && ((v & (v - 1)) == 0);
-}
+static inline bool isPowerOfTwo(uint16_t v) { return v && ((v & (v - 1)) == 0); }
 
 IrqPin::IrqPin(GPIO_TypeDef* port,
                uint16_t      pinMask,
@@ -20,12 +19,14 @@ IrqPin::IrqPin(GPIO_TypeDef* port,
                IrqTrigger    trigger,
                uint32_t      pull,
                uint32_t      nvicPreemptPrio,
-               uint32_t      nvicSubPrio)
+               uint32_t      nvicSubPrio,
+               bool          autoDisableOnFire)
 : _port(port),
   _pinMask(pinMask),
   _line(pinMaskToLine(pinMask)),
   _irqn(lineToIrq(_line)),
-  _enabled(false)
+  _enabled(false),
+  _autoDisableOnFire(autoDisableOnFire)
 {
     if (!isPowerOfTwo(_pinMask) || _line > 15 || isr == nullptr) {
         CRT_ASSERT(false && "IrqPin: invalid pinMask/line or null ISR");
@@ -34,10 +35,10 @@ IrqPin::IrqPin(GPIO_TypeDef* port,
 
     claimLineOrAssert();
 
-    // Register ctx callback for this EXTI line
     s_ctxFn[_line]    = isr;
     s_ctx[_line]      = ctx;
     s_legacyFn[_line] = nullptr;
+    s_ownerObj[_line] = this;
 
     initCommon(trigger, pull, nvicPreemptPrio, nvicSubPrio);
 }
@@ -48,12 +49,14 @@ IrqPin::IrqPin(GPIO_TypeDef* port,
                IrqTrigger    trigger,
                uint32_t      pull,
                uint32_t      nvicPreemptPrio,
-               uint32_t      nvicSubPrio)
+               uint32_t      nvicSubPrio,
+               bool          autoDisableOnFire)
 : _port(port),
   _pinMask(pinMask),
   _line(pinMaskToLine(pinMask)),
   _irqn(lineToIrq(_line)),
-  _enabled(false)
+  _enabled(false),
+  _autoDisableOnFire(autoDisableOnFire)
 {
     if (!isPowerOfTwo(_pinMask) || _line > 15 || isr == nullptr) {
         CRT_ASSERT(false && "IrqPin: invalid pinMask/line or null ISR");
@@ -62,10 +65,10 @@ IrqPin::IrqPin(GPIO_TypeDef* port,
 
     claimLineOrAssert();
 
-    // Register legacy callback for this EXTI line
     s_ctxFn[_line]    = nullptr;
     s_ctx[_line]      = nullptr;
     s_legacyFn[_line] = isr;
+    s_ownerObj[_line] = this;
 
     initCommon(trigger, pull, nvicPreemptPrio, nvicSubPrio);
 }
@@ -74,11 +77,10 @@ void IrqPin::claimLineOrAssert()
 {
     CRT_ASSERT(_line < 16);
 
-    // One owner per EXTI line (0..15).
+    // Only allow claiming an unused line.
     CRT_ASSERT(s_ownerPort[_line] == nullptr && "IrqPin: EXTI line already claimed by another pin");
-
-    // Prevent double registration for a single line
     CRT_ASSERT(s_ctxFn[_line] == nullptr && s_legacyFn[_line] == nullptr && "IrqPin: EXTI callback already registered");
+    CRT_ASSERT(s_ownerObj[_line] == nullptr && "IrqPin: EXTI owner already registered");
 
     s_ownerPort[_line] = _port;
 }
@@ -88,7 +90,6 @@ void IrqPin::initCommon(IrqTrigger trigger, uint32_t pull, uint32_t nvicPreemptP
     enableGpioClock();
     enableSyscfgClock();
 
-    // Configure GPIO as EXTI source
     GPIO_InitTypeDef cfg = {0};
     cfg.Pin   = _pinMask;
     cfg.Mode  = triggerToHalMode(trigger);
@@ -96,8 +97,6 @@ void IrqPin::initCommon(IrqTrigger trigger, uint32_t pull, uint32_t nvicPreemptP
     cfg.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(_port, &cfg);
 
-    // Enable the NVIC IRQ for the group that serves this EXTI line.
-    // Per-pin enable/disable is done by masking the EXTI line (IMR), not by disabling the NVIC group IRQ.
     HAL_NVIC_SetPriority(_irqn, nvicPreemptPrio, nvicSubPrio);
     HAL_NVIC_EnableIRQ(_irqn);
 
@@ -106,45 +105,50 @@ void IrqPin::initCommon(IrqTrigger trigger, uint32_t pull, uint32_t nvicPreemptP
     disable();
 }
 
-void IrqPin::enable()
-{
+void IrqPin::enable() {
     clearPending();
     extiEnable(_pinMask);
     _enabled = true;
 }
 
-void IrqPin::disable()
-{
+void IrqPin::disable() {
     extiDisable(_pinMask);
     _enabled = false;
 }
 
-void IrqPin::clearPending()
-{
+void IrqPin::clearPending() {
     extiClearPending(_pinMask);
 }
 
 void IrqPin::dispatch(uint16_t pinMask)
 {
     uint8_t line = pinMaskToLine(pinMask);
-    if (line < 16) {
-        // Prefer ctx callback if present
-        IsrCtxFn ctxFn = s_ctxFn[line];
-        if (ctxFn) {
-            ctxFn(s_ctx[line], pinMask);
-            return;
-        }
-        // Otherwise legacy
-        IsrFn legacy = s_legacyFn[line];
-        if (legacy) {
-            legacy(pinMask);
-            return;
-        }
+    if (line >= 16) return;
+
+    // Optional: auto-disable immediately on fire to avoid interrupt storms.
+    IrqPin* owner = s_ownerObj[line];
+    if (owner && owner->_autoDisableOnFire) {
+        // Mask first, then clear pending to swallow any bounce edges that arrived during ISR.
+        owner->disable();
+        owner->clearPending();
+    }
+
+    // Prefer ctx callback if present
+    IsrCtxFn ctxFn = s_ctxFn[line];
+    if (ctxFn) {
+        ctxFn(s_ctx[line], pinMask);
+        return;
+    }
+
+    // Otherwise legacy
+    IsrFn legacy = s_legacyFn[line];
+    if (legacy) {
+        legacy(pinMask);
+        return;
     }
 }
 
-uint32_t IrqPin::triggerToHalMode(IrqTrigger trigger)
-{
+uint32_t IrqPin::triggerToHalMode(IrqTrigger trigger) {
     switch (trigger) {
         case IrqTrigger::ON_FLANK_UP:   return GPIO_MODE_IT_RISING;
         case IrqTrigger::ON_FLANK_DOWN: return GPIO_MODE_IT_FALLING;
@@ -153,10 +157,8 @@ uint32_t IrqPin::triggerToHalMode(IrqTrigger trigger)
     }
 }
 
-uint8_t IrqPin::pinMaskToLine(uint16_t pinMask)
-{
+uint8_t IrqPin::pinMaskToLine(uint16_t pinMask) {
     if (!isPowerOfTwo(pinMask)) return 0xFF;
-
 #if defined(__GNUC__)
     return static_cast<uint8_t>(__builtin_ctz(static_cast<unsigned int>(pinMask)));
 #else
@@ -168,13 +170,6 @@ uint8_t IrqPin::pinMaskToLine(uint16_t pinMask)
 
 IRQn_Type IrqPin::lineToIrq(uint8_t line)
 {
-    // IMPORTANT:
-    // In STM32 CMSIS headers, EXTIx_IRQn identifiers are *enum values* (IRQn_Type),
-    // not preprocessor macros. So you cannot reliably use #if defined(EXTI0_IRQn).
-    //
-    // We therefore select the mapping using STM32 series macros (e.g. STM32WLE5xx).
-    //
-    // STM32WL (Cortex-M4): classic EXTI0..4 + EXTI9_5 + EXTI15_10 mapping.
 #if defined(STM32WLE5xx) || defined(STM32WL55xx) || defined(STM32WL54xx) || defined(STM32WL5Mxx) || defined(STM32WLxx)
     switch (line) {
         case 0:  return EXTI0_IRQn;
@@ -186,14 +181,10 @@ IRQn_Type IrqPin::lineToIrq(uint8_t line)
             if (line <= 9)  return EXTI9_5_IRQn;
             else            return EXTI15_10_IRQn;
     }
-
-    // STM32F0/L0/G0 (and a few others): grouped EXTI0_1, EXTI2_3, EXTI4_15.
 #elif defined(STM32F0xx) || defined(STM32L0xx) || defined(STM32G0xx)
     if (line <= 1) return EXTI0_1_IRQn;
     if (line <= 3) return EXTI2_3_IRQn;
     return EXTI4_15_IRQn;
-
-    // Default: most STM32 Cortex-M3/M4 families use classic mapping.
 #else
     switch (line) {
         case 0:  return EXTI0_IRQn;
@@ -208,8 +199,7 @@ IRQn_Type IrqPin::lineToIrq(uint8_t line)
 #endif
 }
 
-void IrqPin::enableGpioClock()
-{
+void IrqPin::enableGpioClock() {
     if (_port == GPIOA) __HAL_RCC_GPIOA_CLK_ENABLE();
     else if (_port == GPIOB) __HAL_RCC_GPIOB_CLK_ENABLE();
     else if (_port == GPIOC) __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -230,8 +220,7 @@ void IrqPin::enableGpioClock()
 #endif
 }
 
-void IrqPin::enableSyscfgClock()
-{
+void IrqPin::enableSyscfgClock() {
 #if defined(__HAL_RCC_SYSCFG_CLK_ENABLE)
     __HAL_RCC_SYSCFG_CLK_ENABLE();
 #elif defined(__HAL_RCC_AFIO_CLK_ENABLE)
@@ -241,8 +230,7 @@ void IrqPin::enableSyscfgClock()
 
 // --- Low-level EXTI masking / pending handling -----------------------------
 
-void IrqPin::extiEnable(uint16_t pinMask)
-{
+void IrqPin::extiEnable(uint16_t pinMask) {
 #if defined(EXTI_IMR1_IM0)
     EXTI->IMR1 |= static_cast<uint32_t>(pinMask);
 #elif defined(EXTI_IMR_IM0)
@@ -254,8 +242,7 @@ void IrqPin::extiEnable(uint16_t pinMask)
 #endif
 }
 
-void IrqPin::extiDisable(uint16_t pinMask)
-{
+void IrqPin::extiDisable(uint16_t pinMask) {
 #if defined(EXTI_IMR1_IM0)
     EXTI->IMR1 &= ~static_cast<uint32_t>(pinMask);
 #elif defined(EXTI_IMR_IM0)
@@ -267,8 +254,7 @@ void IrqPin::extiDisable(uint16_t pinMask)
 #endif
 }
 
-void IrqPin::extiClearPending(uint16_t pinMask)
-{
+void IrqPin::extiClearPending(uint16_t pinMask) {
 #if defined(EXTI_PR1_PR0)
     EXTI->PR1 = static_cast<uint32_t>(pinMask);
 #elif defined(EXTI_PR_PR0)
@@ -283,21 +269,15 @@ void IrqPin::extiClearPending(uint16_t pinMask)
 } // namespace crt
 
 // ---- Integration hook ------------------------------------------------------
-// Some projects (e.g. LoRaWAN stacks) already provide HAL_GPIO_EXTI_Callback().
-// In that case, do NOT define another one here (it would cause a multiple-definition link error).
-//
-// Instead, call this function from your existing HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin).
+// Call this from your existing HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin).
 extern "C" void crt_IrqPin_onHalGpioExti(uint16_t GPIO_Pin)
 {
     crt::IrqPin::dispatch(GPIO_Pin);
 }
 
-// Optional convenience: if your project does NOT define HAL_GPIO_EXTI_Callback elsewhere,
-// you can enable the default forwarder by adding -DCRT_IRQPIN_DEFINE_HAL_GPIO_EXTI_CALLBACK to your compiler flags.
 #if defined(CRT_IRQPIN_DEFINE_HAL_GPIO_EXTI_CALLBACK)
 extern "C" void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     crt_IrqPin_onHalGpioExti(GPIO_Pin);
 }
 #endif
-
