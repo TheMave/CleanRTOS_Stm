@@ -9,6 +9,7 @@ void*            IrqPin::s_ctx[16]        = { nullptr };
 IrqPin::IsrFn    IrqPin::s_legacyFn[16]   = { nullptr };
 IrqPin*          IrqPin::s_ownerObj[16]   = { nullptr };
 GPIO_TypeDef*    IrqPin::s_ownerPort[16]  = { nullptr };
+volatile uint32_t IrqPin::s_edgeCount[16] = { 0 };
 
 static inline bool isPowerOfTwo(uint16_t v) { return v && ((v & (v - 1)) == 0); }
 
@@ -39,6 +40,7 @@ IrqPin::IrqPin(GPIO_TypeDef* port,
     s_ctx[_line]      = ctx;
     s_legacyFn[_line] = nullptr;
     s_ownerObj[_line] = this;
+    s_edgeCount[_line]= 0;
 
     initCommon(trigger, pull, nvicPreemptPrio, nvicSubPrio);
 }
@@ -69,6 +71,7 @@ IrqPin::IrqPin(GPIO_TypeDef* port,
     s_ctx[_line]      = nullptr;
     s_legacyFn[_line] = isr;
     s_ownerObj[_line] = this;
+    s_edgeCount[_line]= 0;
 
     initCommon(trigger, pull, nvicPreemptPrio, nvicSubPrio);
 }
@@ -120,32 +123,77 @@ void IrqPin::clearPending() {
     extiClearPending(_pinMask);
 }
 
+uint32_t IrqPin::peekEdgeCount() const
+{
+    return s_edgeCount[_line];
+}
+
+uint32_t IrqPin::takeEdgeCount()
+{
+    // Atomic read+clear with minimal critical section.
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    uint32_t c = s_edgeCount[_line];
+    s_edgeCount[_line] = 0;
+    if (primask == 0u) {
+        __enable_irq();
+    }
+    return c;
+}
+
+void IrqPin::clearEdgeCount()
+{
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    s_edgeCount[_line] = 0;
+    if (primask == 0u) {
+        __enable_irq();
+    }
+}
+
 void IrqPin::dispatch(uint16_t pinMask)
 {
     uint8_t line = pinMaskToLine(pinMask);
     if (line >= 16) return;
 
-    // Optional: auto-disable immediately on fire to avoid interrupt storms.
     IrqPin* owner = s_ownerObj[line];
+
+    // If autoDisableOnFire is enabled: we mask and clear pending immediately.
+    // In this mode edge counting is disabled.
     if (owner && owner->_autoDisableOnFire) {
-        // Mask first, then clear pending to swallow any bounce edges that arrived during ISR.
         owner->disable();
         owner->clearPending();
+
+        // Always call callback for this (single-shot) fire.
+        IsrCtxFn ctxFn = s_ctxFn[line];
+        if (ctxFn) { ctxFn(s_ctx[line], pinMask); return; }
+        IsrFn legacy = s_legacyFn[line];
+        if (legacy) { legacy(pinMask); return; }
+        return;
+    }
+
+    // Edge counting mode (autoDisableOnFire == false):
+    // increment counter and only invoke callback on 0 -> 1 transition.
+    bool shouldCall = true;
+    if (owner && !owner->_autoDisableOnFire) {
+        uint32_t prev = s_edgeCount[line];
+        if (prev != 0xFFFFFFFFu) {
+            s_edgeCount[line] = prev + 1u;
+        }
+        shouldCall = (prev == 0u);
+    }
+
+    if (!shouldCall) {
+        return;
     }
 
     // Prefer ctx callback if present
     IsrCtxFn ctxFn = s_ctxFn[line];
-    if (ctxFn) {
-        ctxFn(s_ctx[line], pinMask);
-        return;
-    }
+    if (ctxFn) { ctxFn(s_ctx[line], pinMask); return; }
 
     // Otherwise legacy
     IsrFn legacy = s_legacyFn[line];
-    if (legacy) {
-        legacy(pinMask);
-        return;
-    }
+    if (legacy) { legacy(pinMask); return; }
 }
 
 uint32_t IrqPin::triggerToHalMode(IrqTrigger trigger) {
