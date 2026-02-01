@@ -18,3 +18,10 @@ void crt::cleanRTOS_init()
 	// crt::LongTimerRelay helps to time-chunk-wise restart Timer objects to wait longer than otherwise possible.
 	static crt::LongTimerRelay longTimerRelayTask("longTimerRelayTask", osPriorityNormal /*priority*/, 2200 /*stackBytes*/);
 }
+
+// C-callable wrapper for use from C code (e.g., c_Stop2Sleep.c)
+// Call after STOP2 wake to process any timers that became due during sleep.
+extern "C" void crt_Timers_handleWakeupsAfterSleep(void)
+{
+	crt::Timers::handleWakeupsAfterSleep();
+}

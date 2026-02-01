@@ -11,6 +11,7 @@ typedef void (*TimerCallback)(void* userData); // niet nodig voor cleanRTOS,
 											   // we gebruiken de simpeler en snellere variant.
 
 void timer2_init();
+void timer2_reinit_after_stop2(void);  // Call after STOP2 wake to restore TIM2
 void timer2_set_callback(TimerCallback cb, void* userData);
 void timer2_fire_after_us(uint32_t delay_us);
 

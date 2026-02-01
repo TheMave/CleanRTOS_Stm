@@ -117,6 +117,37 @@ void timer2_init() {
     // Nodig om `TIM2_IRQHandler()` aan te roepen
 }
 
+// Reinitialize TIM2 after STOP2 wake.
+// Unlike timer2_init(), this doesn't check if TIM2 is already enabled,
+// since we know it was initialized before sleep.
+// After STOP2, peripheral clocks may be off and registers may need reconfiguration.
+void timer2_reinit_after_stop2(void) {
+    // Re-enable TIM2 clock (may have been disabled during STOP2)
+    __HAL_RCC_TIM2_CLK_ENABLE();
+
+    // Reinitialize the timer - htim2 struct is preserved in RAM,
+    // but hardware registers may need reconfiguration
+    htim2.Instance = TIM2;
+    htim2.Init.Prescaler = getPreScalerFor1MhzTimerTick_APB1();
+    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.Init.Period = 0xFFFFFFFF;
+    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+
+    HAL_TIM_Base_Init(&htim2);
+
+    // Clear any pending flags
+    __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_UPDATE);
+
+    // Re-enable update interrupt
+    __HAL_TIM_ENABLE_IT(&htim2, TIM_IT_UPDATE);
+
+    // Re-enable NVIC interrupt
+    HAL_NVIC_SetPriority(TIM2_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1, 0);
+    HAL_NVIC_EnableIRQ(TIM2_IRQn);
+
+    // Note: Callback pointer is preserved in RAM, no need to restore
+}
+
 //static uint8_t timer2_is_paused = 0;
 
 inline void timer2_fire_after_us(uint32_t delay_us) {

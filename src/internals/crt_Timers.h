@@ -239,7 +239,25 @@ namespace crt
 			return Timers_template::instance().getNofTimersInUse_impl();
 		}
 
+		// Call after STOP2 wake to process any timers that became due during sleep.
+		// Prerequisites: Time class must be compensated first (crt_Time_addSleepCompensationMs),
+		// and TIM2 must be reinitialized (timer2_reinit_after_stop2).
+		inline static void handleWakeupsAfterSleep()
+		{
+			Timers_template::instance().handleWakeupsAfterSleep_impl();
+		}
+
 	private:
+		// Called after STOP2 wake to fire due timers and re-arm TIM2.
+		void handleWakeupsAfterSleep_impl()
+		{
+			uint64_t now_us = Time::instance()->getTimeMicroseconds();
+			bool bWakeupHandled = handleWakeups2(now_us);
+			if (bWakeupHandled || _pHead != nullptr) {
+				reassignHardwareTimerInterruptToFirstInList(now_us);
+			}
+		}
+
 		[[nodiscard]] TimerHandle createTimer_impl(const char* name, TimerArgsCallback callback, void* userArg)
 		{
 			taskENTER_CRITICAL(); // korte instructie. kan wel in kritieke sectie.
@@ -502,3 +520,7 @@ namespace crt
 		}
 	}; // end class Timers
 }; // end namespace crt
+
+// C-callable wrapper declaration for use from C code (e.g., c_Stop2Sleep.c)
+// Implementation is in crt_CleanRTOS.cpp
+extern "C" void crt_Timers_handleWakeupsAfterSleep(void);
