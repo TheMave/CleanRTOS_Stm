@@ -88,6 +88,7 @@ namespace crt
         }
 
         // If sleeps of longer than 1000 us are needed, you could use osDelay instead.
+		// However: osDelay counts systicks, which stop in deep-sleep.
         inline void sleep_us(uint64_t duration_us)
         {
             start(duration_us);

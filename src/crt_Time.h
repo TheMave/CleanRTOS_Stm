@@ -91,7 +91,24 @@ namespace crt
 			return Time::instance()->getTimeMicroseconds_impl();
 		}
 
+		// Call this after waking from STOP2 to compensate for time spent sleeping.
+		// The DWT cycle counter freezes during STOP2, so we need to manually add
+		// the sleep duration to our accumulated cycle count.
+		static inline void addSleepCompensationMs(uint32_t sleepMs)
+		{
+			Time::instance()->addSleepCompensationMs_impl(sleepMs);
+		}
+
 	private:
+		inline void addSleepCompensationMs_impl(uint32_t sleepMs)
+		{
+			// Convert milliseconds to cycles: cycles = ms * clockHz / 1000
+			uint64_t sleepCycles = (uint64_t)sleepMs * SystemCoreClock / 1000;
+
+			seq++; // seq becomes odd (signals update in progress)
+			total += sleepCycles;
+			seq++; // seq becomes even again
+		}
 
 		// Bij 86Mhz clockspeed en compiler-optimization UIT, kost
 		// onderstaande functie ongeveer 5us op een 401 blackpill.
@@ -146,3 +163,7 @@ namespace crt
 		}
 	}; // end class StmTimers
 }; // end namespace crt
+
+// C-callable wrapper declaration for use from C code (e.g., c_Stop2Sleep.c)
+// Implementation is in crt_Time.cpp
+extern "C" void crt_Time_addSleepCompensationMs(uint32_t sleepMs);
