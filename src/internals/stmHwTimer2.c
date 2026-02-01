@@ -4,6 +4,7 @@
 #include "crt_stm_hal.h"
 #include "FreeRTOS.h"
 #include <stdio.h>
+#include <stdbool.h>
 #include <assert.h>
 
 //// in Clock config, check radio button use PLL -> then "press ook on "fix .." -> results in 84MHZ ABP1 Clock for hardware timers.
@@ -37,6 +38,7 @@
 //}
 
 static TIM_HandleTypeDef htim2; // static: alleen bekend binnen deze .c file
+static bool timer2_initialized = false; // Tracks if timer2_init() was called
 
 // Timer2 en Timer5 (beide 32 bits timers) zitten op de APB1 bus.
 static uint32_t getPreScalerFor1MhzTimerTick_APB1()
@@ -115,6 +117,8 @@ void timer2_init() {
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
     // Activeer de interrupt in het Nested Vector Interrupt Controller (NVIC)
     // Nodig om `TIM2_IRQHandler()` aan te roepen
+
+    timer2_initialized = true;
 }
 
 // Reinitialize TIM2 after STOP2 wake.
@@ -122,6 +126,13 @@ void timer2_init() {
 // since we know it was initialized before sleep.
 // After STOP2, peripheral clocks may be off and registers may need reconfiguration.
 void timer2_reinit_after_stop2(void) {
+    // Only reinit if timer2 was initialized before sleep.
+    // If timer2_init() was never called (Timers singleton not yet created),
+    // there's nothing to restore.
+    if (!timer2_initialized) {
+        return;
+    }
+
     // Re-enable TIM2 clock (may have been disabled during STOP2)
     __HAL_RCC_TIM2_CLK_ENABLE();
 
