@@ -117,6 +117,7 @@ public:
     
     Iterator getLast() {
         if (isEmpty()) return Iterator::end(this);
-        return Iterator(this, head, false);
+        size_t lastIndex = (head + CAPACITY - 1) % CAPACITY;
+        return Iterator(this, lastIndex, false);
     }
 };
