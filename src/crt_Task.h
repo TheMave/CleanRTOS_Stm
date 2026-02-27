@@ -182,14 +182,35 @@ namespace crt
         // So there's no need to check with hasFired.
 		inline void waitAll(uint32_t bitsToWaitFor)
 		{
-			latestResult = osEventFlagsWait(
-				hFlags,
-				bitsToWaitFor,
-				osFlagsWaitAll,
-				osWaitForever); // xTicksToWait)
+			while (true) {
+				latestResult = osEventFlagsWait(
+					hFlags,
+					bitsToWaitFor,
+					osFlagsWaitAll,
+					CRT_STOP2_RECOVERY_TIMEOUT_MS);
 
-            // Actually, we didn't want to clear the queue bits, so let's repair that:
-            setEventBits(queuesMask & latestResult);
+				if (latestResult & osFlagsError) {
+					// Timeout — check actual flag state (STOP2 recovery).
+					// After STOP2, osEventFlagsWait can get permanently stuck
+					// because cross-task osEventFlagsSet no longer wakes it.
+					// Reading the actual flags catches bits that were set but missed.
+					uint32_t actual = osEventFlagsGet(hFlags);
+					if ((actual & bitsToWaitFor) == bitsToWaitFor) {
+						// All required bits are actually set — mimic normal
+						// osFlagsWaitAll behavior: clear waited bits, re-set queue bits.
+						latestResult = actual;
+						clearEventBits(bitsToWaitFor);
+						setEventBits(queuesMask & latestResult);
+						return;
+					}
+					// Not all bits set yet — retry
+					continue;
+				}
+
+				// Normal wake — repair queue bits as before
+				setEventBits(queuesMask & latestResult);
+				return;
+			}
 		}
 
 		// return value: the bits that were set at the time of firing.
@@ -200,11 +221,28 @@ namespace crt
         // Thus, it is advised always to process only the actions on a single event after a waitAny.
 		inline void waitAny(uint32_t bitsToWaitFor)
 		{
-			latestResult = osEventFlagsWait(
-				hFlags,
-				bitsToWaitFor,
-				osFlagsWaitAny | osFlagsNoClear,
-				osWaitForever); // xTicksToWait)
+			while (true) {
+				latestResult = osEventFlagsWait(
+					hFlags,
+					bitsToWaitFor,
+					osFlagsWaitAny | osFlagsNoClear,
+					CRT_STOP2_RECOVERY_TIMEOUT_MS);
+
+				if (latestResult & osFlagsError) {
+					// Timeout — check actual flag state (STOP2 recovery).
+					// After STOP2, osEventFlagsWait can get permanently stuck
+					// because cross-task osEventFlagsSet no longer wakes it.
+					uint32_t actual = osEventFlagsGet(hFlags);
+					if (actual & bitsToWaitFor) {
+						// At least one waited bit is actually set — return it.
+						latestResult = actual;
+						return;
+					}
+					// Nothing set yet — retry
+					continue;
+				}
+				return;
+			}
 		}
 
 		inline bool hasFired(Waitable& waitable)
