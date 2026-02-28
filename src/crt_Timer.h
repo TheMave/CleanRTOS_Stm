@@ -245,9 +245,8 @@ namespace crt
 				//no chopping. periodic hwTimer will go on. non-periodic hwTimer will stop. no action required.
 				// Set the eventbit of the client.
 
-				// korte/gewone fire → afleveren via Relay
+					// Deliver via LongTimerRelay (task-context, avoids ISR daemon queue issues)
 				LongTimerRelay::requestDeliver(this, (uint32_t)longTimerRunId);
-				//pTask->setEventBits(bitMask);   Geen directe setEventBits meer in ISR!
 			}
 
 

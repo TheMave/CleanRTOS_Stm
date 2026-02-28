@@ -73,8 +73,6 @@ namespace crt
 	                info.pTimer->rearmToContinueLongTiming(info.longTimerRunId);
 	                break;
 
-	                // no longer used: (see requestDeliver in header file)
-	                // reden: prevent Queue overload bij te snelle periodic timers.
 	            case RelayAction::DeliverOnly:
 	                // Bezorg eventbit, maar alleen als het nog dezelfde run is
 	                if (info.longTimerRunId == info.pTimer->getLongTimerRunId()) {

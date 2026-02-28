@@ -273,7 +273,7 @@ namespace crt
 				osFlagsWaitAll | osFlagsNoClear,
 				0); // xTicksToWait)
 
-			return (bitsToWaitFor == latestResult);
+			return ((bitsToWaitFor & latestResult) == bitsToWaitFor);
         }
 
         // The function below can be used to peek if any waitables have fired,
