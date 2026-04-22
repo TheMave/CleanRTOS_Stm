@@ -171,6 +171,12 @@ namespace crt
             osEventFlagsClear(hFlags, uxBitsToClear);
         }
 
+        // Non-mutating peek of currently-set event bits. Safe to call from any task.
+        inline uint32_t peekEventBits() const
+        {
+            return osEventFlagsGet(hFlags);
+        }
+
         // Wait for a single waitable.
         inline void wait(Waitable& waitable)
         {
