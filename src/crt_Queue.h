@@ -6,6 +6,7 @@ extern "C" {
 	#include "crt_stm_hal.h"
 
 	#include "cmsis_os2.h"
+	#include "c_printing.h"
 }
 
 #include "crt_Waitable.h"
@@ -72,7 +73,7 @@ namespace crt
 			//assert(rc == pdPASS);
 		}
 
-		bool write(const TYPE& variableToCopy)
+		[[nodiscard]] bool write(const TYPE& variableToCopy)
 		{
 			osStatus_t rc = osMessageQueuePut(qh, &variableToCopy, 0/*msg_prio*/, writeDelay);
 
@@ -80,7 +81,7 @@ namespace crt
             {
                 // The queue got full. Note: that cannot happen if bWriteWaitIfQueueFull==true.
             	// TODO: deal with other potential things that may have happened (switch rc..)
-            	assert(false);
+            	safe_printf("crt::Queue::write failed (queue full or rc=%d)\r\n", (int)rc);
                 return false;
             }
             if(pTask!=nullptr)

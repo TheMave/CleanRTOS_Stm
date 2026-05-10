@@ -52,9 +52,23 @@ namespace crt
 	// being stopped or having finally fired. (pTimer must remain valid while Queued).
 	// This is automatically achieved when always preallocating all required timers
 	// and not destroying them - which is the advised way of embedded programming.
+	// Diagnostic counter — bumped on every queue-full drop in requestRearm.
+	// Not strictly atomic on Cortex-M (3-instruction RMW), but acceptable for a
+	// diagnostic; an occasional missed count won't change the conclusion ("any
+	// non-zero value means the queue overflowed at least once").
+	static volatile uint32_t s_droppedRearms = 0;
+
 	/*(static)*/ void LongTimerRelay::requestRearm(const LongTimerRelayInfo& longTimerRelayInfo)
 	{
-		instance()->queueLongTimersThatDesireRearm.write(longTimerRelayInfo);
+		if (!instance()->queueLongTimersThatDesireRearm.write(longTimerRelayInfo))
+		{
+			++s_droppedRearms;   // queue full ⇒ rearm dropped (capacity 10); see getDroppedRearmCount()
+		}
+	}
+
+	/*(static)*/ uint32_t LongTimerRelay::getDroppedRearmCount()
+	{
+		return s_droppedRearms;
 	}
 
 	void LongTimerRelay::main()

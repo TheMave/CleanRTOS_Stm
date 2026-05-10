@@ -58,6 +58,12 @@ namespace crt
 		// and not destroying them - which is the advised way of embedded programming.
 		static void requestRearm(const LongTimerRelayInfo& pLongTimerRelayInfo);
 
+		// Diagnostic: count of rearm/deliver requests dropped because the relay
+		// queue was full at the moment of write. Bumped from any context
+		// (including HW timer ISR), read from non-ISR (e.g. state-dump task).
+		// Monotonically increasing; never reset in firmware.
+		static uint32_t getDroppedRearmCount();
+
 	    static inline void requestDeliver(Timer* t, uint32_t runId) {
 	        requestRearm(LongTimerRelayInfo{t, runId, RelayAction::DeliverOnly});
 	    }
