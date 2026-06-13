@@ -87,8 +87,15 @@ public:
         Iterator next() {
             if (ended) return *this;
 
+            // We reach the end when the next index lands on head. For a NON-full
+            // buffer head is the (empty) write slot, so this ends right after the
+            // last element. For a FULL buffer head == tail, so getFirst() starts
+            // at head (not ended) and we only land on head again after walking all
+            // CAPACITY elements - exactly when iteration must stop. The previous
+            // "&& !bFull" guard suppressed that, so a full buffer never set ended
+            // and findPacketById looped forever (wedging on a full packet cache).
             size_t nextIndex = (index + 1) % CAPACITY;
-            bool nextEnded = (nextIndex == buffer->head && !buffer->bFull);
+            bool nextEnded = (nextIndex == buffer->head);
             return Iterator(buffer, nextIndex, nextEnded);
         }
 
