@@ -36,6 +36,7 @@ Bij goed software ontwerp zul je vrijwel uitsluitend de volgende 5 CleanRTOS kla
   - De ene taak kan de andere taak een "seintje" geven door een "flag" van die andere taak te setten. Die andere taak kan daar op wachten.
 - Queue
   - De ene taak kan brokken informatie (bytes, structs, etc) versturen naar een queue van een andere taak. Die andere taak kan die brokken informatie een voor een uit de queue lezen op een moment dat het hem uitkomt.
+  - Wacht de taak alleen op die queue, dan `wait(queue)` gevolgd door `read()`. Wacht hij met `waitAny()` op meer dingen tegelijk, dan na `hasFired(queue)` altijd `tryRead()` en nooit `read()`: het event-bit is een aanwijzing, geen belofte (zie de toelichting in crt_Queue.h).
 - Pool
   - Een pool is een brok "gedeelde data" welke meerdere taken veilig kunnen lezen en/of aanpassen.
 - Timer
