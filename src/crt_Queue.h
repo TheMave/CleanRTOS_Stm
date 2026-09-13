@@ -2,11 +2,16 @@
 
 #pragma once
 
-// Alleen activeren in geval van test om te zien of het 
-// zonder de faciliteiten die tryRead biedt inderdaad niet veilig is.
-// Spoiler: dat is dus niet veilig, dus onderstaande define 
-// normaal gesproken NIET gebruiken!
+// Test-hooks, alleen voor tests/TestQueueDoorbell. Normaal NIET definiëren:
+//   CRT_QUEUE_WIDEN_DOORBELL_RACE       venster tussen put en setEventBits wijd
+//                                       open: hasFired()+read() hangt, tryRead() niet.
+//   CRT_QUEUE_WIDEN_LOST_DOORBELL_RACE  venster tussen "leeg" en clear wijd open:
+//                                       laat zien waarom syncEventBit() na het
+//                                       wissen nog een keer kijkt.
+// Zolang ze aan staan yield-t elke queue-write, resp. wacht elke lege tryRead 20 ms.
+// Een #warning in elk hook-blok maakt een vergeten define zichtbaar bij het bouwen.
 // #define CRT_QUEUE_WIDEN_DOORBELL_RACE
+// #define CRT_QUEUE_WIDEN_LOST_DOORBELL_RACE
 
 extern "C" {
 	#include "crt_stm_hal.h"
@@ -106,7 +111,9 @@ namespace crt
             if(pTask!=nullptr)
             {
 #ifdef CRT_QUEUE_WIDEN_DOORBELL_RACE
-            	// ALLEEN VOOR TESTS (projectsymbool, zie tests/TestQueueDoorbell) - geen fix.
+#warning "CRT_QUEUE_WIDEN_DOORBELL_RACE staat aan: alleen voor tests/TestQueueDoorbell"
+            	// ALLEEN VOOR TESTS (define bovenaan dit bestand of projectsymbool,
+            	// zie tests/TestQueueDoorbell) - geen fix.
             	// Zet het venster open dat hieronder sowieso al bestaat: het item staat na
             	// osMessageQueuePut al in de queue, maar de lezer weet dat pas na
             	// setEventBits. Wordt de schrijver daar precies tussenin weggedrukt en
@@ -156,14 +163,8 @@ namespace crt
 		// queue staat. Alleen de eigenaar-taak roept dit aan, vanuit read() /
 		// tryRead(). (Vanuit een ISR gaat osEventFlagsClear via de FreeRTOS
 		// timer-daemon en kan dan pas later - en in andere volgorde - landen.)
-		//
-		// De dubbele controle is geen overdaad. Tussen het vaststellen dat de
-		// queue leeg is en het wissen van het bit kan een schrijver er alsnog
-		// iets in zetten. Die schrijver zet daarna zelf ook het bit, maar dat kan
-		// net voor ons wissen gebeurd zijn - dan zouden we zijn belletje
-		// wegpoetsen en zou zijn commando blijven liggen tot er toevallig een
-		// volgende schrijver langskomt. Na het wissen dus nog een keer kijken:
-		// wat er dan staat, is van na het wissen, en daar hoort het bit bij.
+		// Waarom er na het wissen nog een keer gekeken wordt: zie de toelichting
+		// bij clearEventBits() hieronder.
 		void syncEventBit()
 		{
 			if (pTask == nullptr) return;	// queue zonder event-bit (bijv. LongTimerRelay)
@@ -175,7 +176,9 @@ namespace crt
 			}
 
 #ifdef CRT_QUEUE_WIDEN_LOST_DOORBELL_RACE
-			// ALLEEN VOOR TESTS (projectsymbool, zie tests/TestQueueDoorbell) - geen fix.
+#warning "CRT_QUEUE_WIDEN_LOST_DOORBELL_RACE staat aan: alleen voor tests/TestQueueDoorbell"
+			// ALLEEN VOOR TESTS (define bovenaan dit bestand of projectsymbool,
+			// zie tests/TestQueueDoorbell) - geen fix.
 			// Vergroot het venster tussen "queue is leeg" en het wissen van het bit,
 			// zodat een schrijver er tussen kan komen. Zonder de tweede controle
 			// hieronder zou diens belletje worden gewist en zijn item blijven liggen.
@@ -184,6 +187,14 @@ namespace crt
 			// een osDelay. 20 ms geeft hem gegarandeerd de kans.
 			osDelay(20);
 #endif
+			// A plain clearEventBits() here would not be safe: a task switch right
+			// before it can let a writer put an item AND set the bit, and the clear
+			// would wipe that bit. Hence the re-check after clearing: the bit is
+			// guaranteed set whenever something is in the queue.
+			// The opposite is not guaranteed: a writer preempted between put and
+			// setEventBits sets the bit after the owner already read its item,
+			// leaving a set bit on an empty queue. That is why, after waitAny(),
+			// only tryRead() is safe; a blocking read() would hang.
 			pTask->clearEventBits(Waitable::getBitMask());
 
 			if (osMessageQueueGetCount(qh) > 0)

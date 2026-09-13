@@ -53,7 +53,8 @@ namespace crt_demoqueue
 			{
 				dumpStackHighWaterMarkIfIncreased(); 		// This function call takes about 0.25ms! It should be called while debugging only.
 
-				wait(queueNumbers);
+                // read() itself blocks until an item is available, so no wait() is
+                // needed before it. (After a waitAny(), use tryRead() instead - see crt_Queue.h.)
                 queueNumbers.read(number);
                 printf("NumberDisplayTask: received number = %" PRIi32 "\r\n", number);
 			}
