@@ -232,31 +232,28 @@ namespace crt
         	return isAllSet(waitable.getBitMask());
         }
 
-        // The function below can be used to peek if the waitables have fired,
-        // without resetting them or waiting for them.
+        // The functions below peek whether waitables have fired, without
+        // resetting them and without waiting. They build on osEventFlagsGet
+        // (peekEventBits), NOT on osEventFlagsWait with timeout 0: that call
+        // returns the error code osFlagsErrorResource (0xFFFFFFFD) when the
+        // condition is not met. Masking that value as if it were a bit pattern
+        // reports "set" for almost any bit (all but bit 1) and leaves
+        // latestResult polluted, so that hasFired() afterwards lies as well.
+        // See Applications/BuitenBox/tests/TestTaskIsSet.
+        //
+        // latestResult becomes the current snapshot, so hasFired() can be used
+        // afterwards to find out which waitable(s) fired.
         inline bool isAllSet(uint32_t bitsToWaitFor)
         {
-			latestResult = osEventFlagsWait(
-				hFlags,
-				bitsToWaitFor,
-				osFlagsWaitAll | osFlagsNoClear,
-				0); // xTicksToWait)
-
-			return ((bitsToWaitFor & latestResult) == bitsToWaitFor);
+			latestResult = peekEventBits();
+			return ((latestResult & bitsToWaitFor) == bitsToWaitFor);
         }
 
-        // The function below can be used to peek if any waitables have fired,
-        // without resetting them or waiting for them.
-        // You could test which one afterward, using the function hasFired.
+        // Peek whether ANY of the given waitables have fired (see isAllSet).
         inline bool isAnySet(uint32_t bitsToWaitFor)
         {
-			latestResult = osEventFlagsWait(
-				hFlags,
-				bitsToWaitFor,
-				osFlagsWaitAny | osFlagsNoClear,
-				0); // xTicksToWait)
-
-			return ((bitsToWaitFor & latestResult) != 0);
+			latestResult = peekEventBits();
+			return ((latestResult & bitsToWaitFor) != 0);
         }
 
 		inline const char* getName()
