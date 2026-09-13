@@ -2,6 +2,12 @@
 
 #pragma once
 
+// Alleen activeren in geval van test om te zien of het 
+// zonder de faciliteiten die tryRead biedt inderdaad niet veilig is.
+// Spoiler: dat is dus niet veilig, dus onderstaande define 
+// normaal gesproken NIET gebruiken!
+// #define CRT_QUEUE_WIDEN_DOORBELL_RACE
+
 extern "C" {
 	#include "crt_stm_hal.h"
 
