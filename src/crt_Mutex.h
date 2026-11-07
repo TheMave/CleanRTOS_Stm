@@ -5,6 +5,7 @@
 extern "C" {
 	#include "crt_stm_hal.h"
 	#include "cmsis_os2.h"
+	#include "FreeRTOS.h"  // for StaticSemaphore_t
 }
 #include <cassert>
 
@@ -27,8 +28,16 @@ namespace crt
 	// Each Task has its own mutex stack. That makes sure that within the Task,
 	// mutexes are always locked in the order of their mutex priority.
 
+	// The FreeRTOS control block of the mutex is part of this object
+	// (static allocation, configSUPPORT_STATIC_ALLOCATION = 1), so creating
+	// a Mutex takes nothing from the FreeRTOS heap. FreeRTOS keeps a
+	// pointer to that control block, so a Mutex can not be copied.
+
 	class Mutex
 	{
+	private:
+		StaticSemaphore_t controlBlock;
+
 	public:
 		uint32_t mutexID;		// Dus ID = een uint32_t
 		osMutexId_t mutexId;    // Dus Id = void*
@@ -38,9 +47,13 @@ namespace crt
 		Mutex(uint32_t mutexID) : mutexID(mutexID)
 		{
 			assert(mutexID != 0);	// MutexID should not be 0. Zero is reserved (to indicate absence of mutexID)
-			mutexId = osMutexNew(nullptr);
+			const osMutexAttr_t attributes = { nullptr, 0, &controlBlock, sizeof(controlBlock) };
+			mutexId = osMutexNew(&attributes);
 			assert(mutexId != nullptr);
 		}
+
+		Mutex(const Mutex&) = delete;
+		Mutex& operator=(const Mutex&) = delete;
 
 		void lock(Task* pTask)
 		{

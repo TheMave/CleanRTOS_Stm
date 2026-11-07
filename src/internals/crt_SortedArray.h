@@ -115,7 +115,7 @@ private:
         return true;
     }
 
-    T items_[CAPACITY]{};
     std::size_t size_ = 0;
+    T items_[CAPACITY]{};
     Comparator cmp_;
 };

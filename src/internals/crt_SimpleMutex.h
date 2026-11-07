@@ -22,9 +22,15 @@ namespace crt
 	// If you use SimpleMutex, make sure to lock and unlock it using SimpleMutexSection.
 	// That way, unlocks are guaranteed when leaving the local scope.
 
+	// The FreeRTOS control block of the mutex is part of this object
+	// (static allocation, configSUPPORT_STATIC_ALLOCATION = 1), so creating
+	// a SimpleMutex takes nothing from the FreeRTOS heap. FreeRTOS keeps a
+	// pointer to that control block, so a SimpleMutex can not be copied.
+
 	class SimpleMutex
 	{
 	private:
+		StaticSemaphore_t controlBlock;
 		osMutexId_t mutexId;
 		osStatus_t status;
 
@@ -32,9 +38,13 @@ namespace crt
 		SimpleMutex()
 		{
 			configASSERT(osKernelGetState() != osKernelInactive);
-			mutexId = osMutexNew(nullptr);
+			const osMutexAttr_t attributes = { nullptr, 0, &controlBlock, sizeof(controlBlock) };
+			mutexId = osMutexNew(&attributes);
 			assert(mutexId != nullptr);
 		}
+
+		SimpleMutex(const SimpleMutex&) = delete;
+		SimpleMutex& operator=(const SimpleMutex&) = delete;
 
 		void lock()
 		{

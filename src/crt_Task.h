@@ -17,6 +17,12 @@ extern "C" {
 #include "event_groups.h"
 #include "c_printing.h"
 
+// Called by Task::dumpStackHighWaterMarkIfIncreased() each time a task reaches a
+// new stack high-water mark. CleanRTOS has a weak default (in crt_CleanRTOS.cpp)
+// that prints the values with safe_printf. An application can override it with
+// its own (strong) definition, e.g. to send it to a logger instead.
+extern "C" void crt_onStackHighWaterMark(const char* taskName, uint32_t stackBytesLeft, uint32_t heapBytesFree);
+
 using namespace crt_std;
 namespace crt
 {
@@ -280,10 +286,9 @@ namespace crt
             {
                 prev_stack_hwm = temp;
 
-                safe_printf("Task %s has left: %lu stack bytes and %u heap bytes\n",
-                       taskName,
-                       prev_stack_hwm * sizeof(StackType_t),
-                       (unsigned int)xPortGetFreeHeapSize());
+                crt_onStackHighWaterMark(taskName,
+                                         (uint32_t)(prev_stack_hwm * sizeof(StackType_t)),
+                                         (uint32_t)xPortGetFreeHeapSize());
             }
 #endif
         }
