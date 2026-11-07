@@ -529,7 +529,7 @@ namespace crt_testtime
 				volatile uint32_t x = 0;
 				for (int j = 0; j < 10000; ++j) x += j;
 
-				logger.logStringConst("LmHandlerProcess: executing");
+				logger.logStringConst("LmHPs:exec");
 
 				for (int j = 0; j < 10000; ++j) x += j;
 
